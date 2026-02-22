@@ -98,6 +98,13 @@ const formVisionModelSupport = ref<Record<string, boolean>>({});
 
 const isNewProvider = computed(() => selectedProviderId.value === 'new');
 
+const apiEndpointPreview = computed(() => {
+  if (!formBaseUrl.value) return '';
+  return formBaseUrl.value.endsWith('/')
+    ? formBaseUrl.value + 'chat/completions'
+    : formBaseUrl.value + '/v1/chat/completions';
+});
+
 // Skills 管理
 const skills = ref<Skill[]>([]);
 const trustedScripts = ref<TrustedScript[]>([]);
@@ -670,6 +677,7 @@ async function handleMcpToggle(id: string, enabled: boolean) {
                   <label>{{ i18n('baseUrl') }}</label>
                   <input v-model="formBaseUrl" :placeholder="i18n('baseUrlPlaceholder')" />
                   <p class="form-hint">{{ i18n('baseUrlHint') }}</p>
+                  <p v-if="apiEndpointPreview" class="api-endpoint-preview">API endpoint: {{ apiEndpointPreview }}</p>
                 </div>
                 <div class="form-group">
                   <label>{{ i18n('apiKey') }}</label>
