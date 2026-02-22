@@ -134,6 +134,8 @@ const isMcpSaving = ref(false);
 const isMcpTesting = ref(false);
 const mcpTestResult = ref<{ success: boolean; message: string; toolCount?: number } | null>(null);
 const unwatchMcpServers = ref<(() => void) | null>(null);
+let mcpAutoSaveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let skipMcpAutoSave = false;
 
 const isNewMcpServer = computed(() => selectedMcpServerId.value === 'new');
 const selectedMcpServer = computed(() => mcpServers.value.find(s => s.id === selectedMcpServerId.value) || null);
@@ -195,6 +197,7 @@ onUnmounted(() => {
   systemThemeMediaQuery.value?.removeEventListener('change', handleSystemThemeChange);
   if (autoSaveDebounceTimer) clearTimeout(autoSaveDebounceTimer);
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  if (mcpAutoSaveDebounceTimer) clearTimeout(mcpAutoSaveDebounceTimer);
 });
 
 // 自动保存模型配置（debounce 800ms）
@@ -471,6 +474,7 @@ async function handleRemoveRawExtractSite(site: string) {
 // ========== MCP Server 管理函数 ==========
 
 function selectMcpServer(id: string) {
+  skipMcpAutoSave = true;
   selectedMcpServerId.value = id;
   const server = mcpServers.value.find(s => s.id === id);
   if (server) {
@@ -482,9 +486,11 @@ function selectMcpServer(id: string) {
     mcpFormEnabled.value = server.enabled;
     mcpTestResult.value = null;
   }
+  nextTick(() => { skipMcpAutoSave = false; });
 }
 
 function addNewMcpServer() {
+  skipMcpAutoSave = true;
   selectedMcpServerId.value = 'new';
   mcpFormName.value = '';
   mcpFormUrl.value = '';
@@ -493,22 +499,45 @@ function addNewMcpServer() {
   mcpFormAuthToken.value = '';
   mcpFormEnabled.value = true;
   mcpTestResult.value = null;
+  nextTick(() => { skipMcpAutoSave = false; });
 }
 
-async function saveMcpServerConfig() {
+// 自动保存 MCP 配置（debounce 800ms）
+function debouncedMcpAutoSave() {
+  if (mcpAutoSaveDebounceTimer) clearTimeout(mcpAutoSaveDebounceTimer);
+  mcpAutoSaveDebounceTimer = setTimeout(() => {
+    if (!selectedMcpServerId.value) return;
+    // 新建 MCP server 时必须 name 和 url 都填完才自动保存
+    if (isNewMcpServer.value) {
+      if (!mcpFormName.value.trim() || !mcpFormUrl.value.trim()) return;
+    }
+    saveMcpServerConfig(true);
+  }, 800);
+}
+
+watch(
+  [mcpFormName, mcpFormUrl, mcpFormDescription, mcpFormAuthType, mcpFormAuthToken, mcpFormEnabled],
+  () => {
+    if (skipMcpAutoSave) return;
+    if (!selectedMcpServerId.value) return;
+    debouncedMcpAutoSave();
+  },
+);
+
+async function saveMcpServerConfig(silent = false) {
   if (!mcpFormName.value.trim() || !mcpFormUrl.value.trim()) {
-    alert(i18n('fillRequired'));
+    if (!silent) alert(i18n('fillRequired'));
     return;
   }
-  
+
   // 验证 URL 格式
   try {
     new URL(mcpFormUrl.value);
   } catch {
-    alert(i18n('mcpInvalidUrl'));
+    if (!silent) alert(i18n('mcpInvalidUrl'));
     return;
   }
-  
+
   isMcpSaving.value = true;
   try {
     const server: McpServerConfig = {
@@ -523,6 +552,11 @@ async function saveMcpServerConfig() {
     await saveMcpServer(server);
     mcpServers.value = await getAllMcpServers();
     selectedMcpServerId.value = server.id;
+    if (silent) {
+      autoSaveMessage.value = i18n('autoSaved');
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => { autoSaveMessage.value = ''; }, 2000);
+    }
   } finally {
     isMcpSaving.value = false;
   }
@@ -968,12 +1002,7 @@ async function handleMcpToggle(id: string, enabled: boolean) {
                     </span>
                   </div>
                 </div>
-                
-                <div class="form-footer">
-                  <button class="btn btn-primary" @click="saveMcpServerConfig" :disabled="isMcpSaving">
-                    {{ isMcpSaving ? i18n('saving') : i18n('saveConfig') }}
-                  </button>
-                </div>
+
               </div>
             </div>
             <div v-else class="empty-form">
