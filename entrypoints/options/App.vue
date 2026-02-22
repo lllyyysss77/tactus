@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import {
   getAllProviders,
   getActiveProvider,
@@ -88,6 +88,7 @@ const isSaving = ref(false);
 const autoSaveMessage = ref('');
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let autoSaveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let skipAutoSave = false;
 
 const formName = ref('');
 const formBaseUrl = ref('');
@@ -212,6 +213,7 @@ function debouncedAutoSave() {
 watch(
   [formName, formBaseUrl, formApiKey, formModels, formVisionModelSupport],
   () => {
+    if (skipAutoSave) return;
     if (!selectedProviderId.value) return;
     debouncedAutoSave();
   },
@@ -224,6 +226,7 @@ async function loadSkills() {
 }
 
 function selectProvider(id: string) {
+  skipAutoSave = true;
   selectedProviderId.value = id;
   const provider = providers.value.find(p => p.id === id);
   if (provider) {
@@ -235,9 +238,11 @@ function selectProvider(id: string) {
     formCustomModel.value = '';
     availableModels.value = [];
   }
+  nextTick(() => { skipAutoSave = false; });
 }
 
 function addNewProvider() {
+  skipAutoSave = true;
   selectedProviderId.value = 'new';
   formName.value = '';
   formBaseUrl.value = '';
@@ -246,6 +251,7 @@ function addNewProvider() {
   formVisionModelSupport.value = {};
   formCustomModel.value = '';
   availableModels.value = [];
+  nextTick(() => { skipAutoSave = false; });
 }
 
 async function fetchAvailableModels() {
