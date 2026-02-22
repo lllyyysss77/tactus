@@ -645,6 +645,43 @@ body {
   color: var(--muted-foreground);
 }
 
+/* Auto-save toast */
+.auto-save-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.auto-save-toast svg {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+}
+
 /* Buttons */
 .btn {
   padding: 12px 24px;

@@ -729,8 +729,8 @@ async function handleMcpToggle(id: string, enabled: boolean) {
                     </div>
                   </div>
                 </div>
-                <div class="form-footer" v-if="autoSaveMessage || isSaving">
-                  <span class="auto-save-hint">{{ isSaving ? i18n('saving') : autoSaveMessage }}</span>
+                <div class="form-footer" v-if="isSaving">
+                  <span class="auto-save-hint">{{ i18n('saving') }}</span>
                 </div>
               </div>
             </div>
@@ -1223,5 +1223,14 @@ async function handleMcpToggle(id: string, enabled: boolean) {
         </div>
       </div>
     </div>
+
+    <Transition name="toast-fade">
+      <div v-if="autoSaveMessage" class="auto-save-toast">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+        <span>{{ autoSaveMessage }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
