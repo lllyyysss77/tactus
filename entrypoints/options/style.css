@@ -640,6 +640,11 @@ body {
   border-top: 1px solid var(--border);
 }
 
+.auto-save-hint {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
 /* Buttons */
 .btn {
   padding: 12px 24px;

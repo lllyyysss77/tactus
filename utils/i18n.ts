@@ -47,6 +47,7 @@ export interface Translations {
   modelVisionDisabled: string;
   saveConfig: string;
   saving: string;
+  autoSaved: string;
   noProviders: string;
   selectOrAddProvider: string;
   modelsCount: string;
@@ -234,6 +235,7 @@ const en: Translations = {
   modelVisionDisabled: 'Text only',
   saveConfig: 'Save Configuration',
   saving: 'Saving...',
+  autoSaved: 'Auto saved',
   noProviders: 'No providers configured',
   selectOrAddProvider: 'Select or add a provider',
   modelsCount: '{count} models',
@@ -421,6 +423,7 @@ const zhCN: Translations = {
   modelVisionDisabled: '仅文本',
   saveConfig: '保存配置',
   saving: '保存中...',
+  autoSaved: '已自动保存',
   noProviders: '暂无服务商配置',
   selectOrAddProvider: '请选择或添加一个服务商',
   modelsCount: '{count} 个模型',

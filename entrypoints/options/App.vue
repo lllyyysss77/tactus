@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import {
   getAllProviders,
   getActiveProvider,
@@ -85,6 +85,9 @@ const selectedProviderId = ref<string | null>(null);
 const availableModels = ref<string[]>([]);
 const isFetchingModels = ref(false);
 const isSaving = ref(false);
+const autoSaveMessage = ref('');
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let autoSaveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 const formName = ref('');
 const formBaseUrl = ref('');
@@ -182,7 +185,31 @@ onUnmounted(() => {
   unwatchThemeMode.value?.();
   unwatchMcpServers.value?.();
   systemThemeMediaQuery.value?.removeEventListener('change', handleSystemThemeChange);
+  if (autoSaveDebounceTimer) clearTimeout(autoSaveDebounceTimer);
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
 });
+
+// 自动保存模型配置（debounce 800ms）
+function debouncedAutoSave() {
+  if (autoSaveDebounceTimer) clearTimeout(autoSaveDebounceTimer);
+  autoSaveDebounceTimer = setTimeout(() => {
+    if (!selectedProviderId.value) return;
+    // 新建 provider 时必须填完必填字段且至少有一个模型
+    if (isNewProvider.value) {
+      if (!formName.value || !formBaseUrl.value || !formApiKey.value || formModels.value.length === 0) return;
+    }
+    saveCurrentProvider(true);
+  }, 800);
+}
+
+watch(
+  [formName, formBaseUrl, formApiKey, formModels, formVisionModelSupport],
+  () => {
+    if (!selectedProviderId.value) return;
+    debouncedAutoSave();
+  },
+  { deep: true },
+);
 
 async function loadSkills() {
   skills.value = await getAllSkills();
@@ -256,13 +283,13 @@ function toggleModelVision(model: string): void {
   formVisionModelSupport.value[model] = !isModelVisionEnabled(model);
 }
 
-async function saveCurrentProvider() {
+async function saveCurrentProvider(silent = false) {
   if (!formName.value || !formBaseUrl.value || !formApiKey.value) {
-    alert(i18n('fillRequired'));
+    if (!silent) alert(i18n('fillRequired'));
     return;
   }
   if (formModels.value.length === 0) {
-    alert(i18n('addAtLeastOneModel'));
+    if (!silent) alert(i18n('addAtLeastOneModel'));
     return;
   }
   isSaving.value = true;
@@ -288,6 +315,11 @@ async function saveCurrentProvider() {
       await setActiveProviderId(provider.id);
     }
     selectedProviderId.value = provider.id;
+    if (silent) {
+      autoSaveMessage.value = i18n('autoSaved');
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => { autoSaveMessage.value = ''; }, 2000);
+    }
   } finally {
     isSaving.value = false;
   }
@@ -689,8 +721,8 @@ async function handleMcpToggle(id: string, enabled: boolean) {
                     </div>
                   </div>
                 </div>
-                <div class="form-footer">
-                  <button class="btn btn-primary" @click="saveCurrentProvider" :disabled="isSaving">{{ isSaving ? i18n('saving') : i18n('saveConfig') }}</button>
+                <div class="form-footer" v-if="autoSaveMessage || isSaving">
+                  <span class="auto-save-hint">{{ isSaving ? i18n('saving') : autoSaveMessage }}</span>
                 </div>
               </div>
             </div>
