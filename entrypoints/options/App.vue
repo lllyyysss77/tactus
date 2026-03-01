@@ -126,8 +126,8 @@ const apiEndpointPreview = computed(() => {
 
   if (formProviderType.value === 'gemini') {
     return endsWithSlash
-      ? cleanBase + '/models/...'
-      : cleanBase + '/v1beta/models/...';
+      ? cleanBase + '/models'
+      : cleanBase + '/v1beta/models';
   }
   if (formProviderType.value === 'anthropic') {
     return endsWithSlash
@@ -272,12 +272,6 @@ function debouncedAutoSave() {
   if (autoSaveDebounceTimer) clearTimeout(autoSaveDebounceTimer);
   autoSaveDebounceTimer = setTimeout(() => {
     if (!selectedProviderId.value) return;
-    // 新建 provider 时必须填完必填字段且至少有一个模型
-    if (isNewProvider.value) {
-      const needsExplicitUrl = formProviderType.value === 'openai';
-      const needsExplicitName = formProviderType.value === 'openai';
-      if ((needsExplicitName && !formName.value) || (needsExplicitUrl && !formBaseUrl.value) || !formApiKey.value || formModels.value.length === 0) return;
-    }
     saveCurrentProvider(true);
   }, 800);
 }
@@ -287,6 +281,7 @@ watch(
   () => {
     if (skipAutoSave) return;
     if (!selectedProviderId.value) return;
+    if (isNewProvider.value) return;
     debouncedAutoSave();
   },
   { deep: true },
@@ -847,7 +842,7 @@ async function removePreset(id: string) {
                 </div>
               </div>
               <div class="form-body">
-                <div class="form-group">
+                <div class="form-group" v-if="isNewProvider">
                   <label>{{ i18n('providerType') }}</label>
                   <div class="auth-type-selector">
                     <button
@@ -935,8 +930,9 @@ async function removePreset(id: string) {
                     </div>
                   </div>
                 </div>
-                <div class="form-footer" v-if="isSaving">
-                  <span class="auto-save-hint">{{ i18n('saving') }}</span>
+                <div class="form-footer" v-if="isNewProvider || isSaving">
+                  <button v-if="isNewProvider" class="btn btn-primary" @click="saveCurrentProvider()" :disabled="isSaving">{{ isSaving ? i18n('saving') : i18n('saveConfig') }}</button>
+                  <span v-else-if="isSaving" class="auto-save-hint">{{ i18n('saving') }}</span>
                 </div>
               </div>
             </div>
