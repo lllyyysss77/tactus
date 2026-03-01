@@ -149,16 +149,9 @@ const copiedMessageIndex = ref<number | null>(null);
 // 复制按钮位置状态（按消息索引存储：'top' | 'bottom'）
 const copyButtonPosition = ref<Record<number, 'top' | 'bottom'>>({});
 
-// 标签页锁定状态 - 当用户正在输入或有活跃对话时锁定
+// 标签页锁定状态 - 仅当 AI 正在回复时锁定
 const isTabLocked = computed(() => {
-  // 条件1: 用户正在输入
-  const isTyping = inputText.value.trim().length > 0;
-  // 条件2: AI 正在响应
-  const isResponding = isLoading.value;
-  // 条件3: 有活跃对话（当前会话有消息）
-  const hasActiveConversation = messages.value.length > 0;
-
-  return (isTyping || isResponding || hasActiveConversation) && sharePageContent.value;
+  return isLoading.value && sharePageContent.value;
 });
 
 // 计算属性
@@ -549,6 +542,8 @@ function isEditableElement(target: EventTarget | null): boolean {
 }
 
 async function refreshActiveTabInfo(): Promise<void> {
+  // AI 回复期间锁定标签页信息，不随浏览器标签页切换而更新
+  if (isTabLocked.value) return;
   try {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     if (!tab?.url || !tab.title) {
@@ -1980,7 +1975,7 @@ function rejectScript() {
         <button
           class="current-tab-chip"
           :class="{ active: sharePageContent, disabled: !activeTabInfo, locked: isTabLocked, 'glow-animation': isTabLocked }"
-          :disabled="!activeTabInfo"
+          :disabled="!activeTabInfo || isTabLocked"
           :title="activeTabButtonTitle"
           @click="toggleShareCurrentTab"
         >
