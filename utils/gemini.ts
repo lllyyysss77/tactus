@@ -48,7 +48,7 @@ interface GeminiFunctionResponsePart {
 type GeminiPart = GeminiTextPart | GeminiInlineDataPart | GeminiFunctionCallPart | GeminiFunctionResponsePart;
 
 interface GeminiContent {
-  role: 'user' | 'model';
+  role: 'user' | 'model' | 'tool';
   parts: GeminiPart[];
 }
 
@@ -244,7 +244,7 @@ function convertToGeminiContents(
     }
 
     if (msg.role === 'tool') {
-      // Function responses go as user messages with functionResponse parts
+      // Function responses go as tool messages with functionResponse parts
       const functionResponsePart: GeminiFunctionResponsePart = {
         functionResponse: {
           name: sanitizeFunctionNameForGemini(msg.name || ''),
@@ -254,18 +254,18 @@ function convertToGeminiContents(
         },
       };
 
-      // Group consecutive tool results into a single user message
+      // Group consecutive tool results into a single tool message
       const lastContent = contents[contents.length - 1];
       if (
         lastContent &&
-        lastContent.role === 'user' &&
+        lastContent.role === 'tool' &&
         lastContent.parts.length > 0 &&
         'functionResponse' in lastContent.parts[0]
       ) {
         lastContent.parts.push(functionResponsePart);
       } else {
         contents.push({
-          role: 'user',
+          role: 'tool',
           parts: [functionResponsePart],
         });
       }
