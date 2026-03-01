@@ -15,6 +15,7 @@ import {
   type Language,
 } from './tools';
 import type { McpTool } from './mcp';
+import { streamChatAnthropic, streamChatAnthropicSimple } from './anthropic';
 
 export interface ModelInfo {
   id: string;
@@ -474,6 +475,12 @@ export async function* streamChat(
   retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG,
   previousApiMessages?: ApiMessage[]  // 新增：传入之前保存的完整 API 上下文
 ): AsyncGenerator<StreamEvent, void, unknown> {
+  // Route to Anthropic implementation if provider type is 'anthropic'
+  if (provider.providerType === 'anthropic') {
+    yield* streamChatAnthropic(provider, messages, context, config, retryConfig, previousApiMessages);
+    return;
+  }
+
   const enableTools = config?.enableTools ?? true;
   const toolExecutor = config?.toolExecutor;
   const maxIterations = config?.maxIterations || 5;
@@ -896,6 +903,12 @@ export async function* streamChatSimple(
   pageContent?: string,
   retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG
 ): AsyncGenerator<string, void, unknown> {
+  // Route to Anthropic implementation if provider type is 'anthropic'
+  if (provider.providerType === 'anthropic') {
+    yield* streamChatAnthropicSimple(provider, messages, pageContent, retryConfig);
+    return;
+  }
+
   const client = createClient(provider);
   const allowImages = isVisionSupportedForModel(provider, provider.selectedModel);
   
