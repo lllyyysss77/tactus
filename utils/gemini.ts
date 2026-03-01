@@ -36,6 +36,7 @@ interface GeminiFunctionCallPart {
     name: string;
     args: Record<string, unknown>;
   };
+  thoughtSignature?: string;
 }
 
 interface GeminiFunctionResponsePart {
@@ -228,12 +229,18 @@ function convertToGeminiContents(
           try {
             args = JSON.parse(tc.function.arguments || '{}');
           } catch {}
-          parts.push({
+          const fcPart: GeminiFunctionCallPart = {
             functionCall: {
               name: sanitizeFunctionNameForGemini(tc.function.name),
               args,
             },
-          });
+          };
+          // Preserve thought signature for Gemini 2.5+/3.x thinking models
+          const thoughtSig = geminiThoughtSignatureMap.get(tc.id);
+          if (thoughtSig) {
+            fcPart.thoughtSignature = thoughtSig;
+          }
+          parts.push(fcPart);
         }
       }
 
@@ -314,6 +321,7 @@ function sanitizeSchemaForGemini(schema: any): any {
  * so we can resolve them back to original names when processing responses.
  */
 let geminiToolNameMap: Map<string, string> = new Map();
+let geminiThoughtSignatureMap: Map<string, string> = new Map();
 
 function sanitizeFunctionNameForGemini(name: string): string {
   return name.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -650,6 +658,7 @@ export async function* streamChatGemini(
   let toolCallRetryCount = 0;
   const maxToolCallRetries = 3;
   let executedToolCallCount = 0;
+  geminiThoughtSignatureMap = new Map();
 
   while (iteration < maxIterations) {
     ensureNotAborted();
@@ -836,11 +845,16 @@ export async function* streamChatGemini(
               if ('functionCall' in part && part.functionCall) {
                 functionCallCounter++;
                 const fc = part.functionCall;
+                const tcId = `gemini-fc-${functionCallCounter}-${Date.now()}`;
                 toolCalls.push({
-                  id: `gemini-fc-${functionCallCounter}-${Date.now()}`,
+                  id: tcId,
                   name: resolveGeminiToolName(fc.name),
                   arguments: JSON.stringify(fc.args || {}),
                 });
+                // Preserve thought signature for Gemini 2.5+/3.x thinking models
+                if ('thoughtSignature' in part && part.thoughtSignature) {
+                  geminiThoughtSignatureMap.set(tcId, part.thoughtSignature);
+                }
               }
             }
 
