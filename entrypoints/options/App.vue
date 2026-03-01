@@ -334,7 +334,8 @@ async function fetchAvailableModels() {
     const models = await fetchModels(effectiveBaseUrl, formApiKey.value, formProviderType.value);
     availableModels.value = models.map(m => m.id);
   } catch (e) {
-    alert(i18n('fetchModelsFailed'));
+    const detail = e instanceof Error ? e.message : String(e);
+    alert(`${i18n('fetchModelsFailed')}: ${detail}`);
   } finally {
     isFetchingModels.value = false;
   }

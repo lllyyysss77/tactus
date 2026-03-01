@@ -23,22 +23,6 @@ export interface ModelInfo {
   name?: string;
 }
 
-// ============ Preset Models ============
-
-export const GEMINI_PRESET_MODELS = [
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-pro',
-  'gemini-1.5-flash',
-];
-
-export const ANTHROPIC_PRESET_MODELS = [
-  'claude-sonnet-4-20250514',
-  'claude-3-5-sonnet-20241022',
-  'claude-3-5-haiku-20241022',
-  'claude-3-opus-20240229',
-];
-
 // ============ 容错机制配置 ============
 
 export interface RetryConfig {
@@ -248,24 +232,14 @@ function createClient(provider: AIProvider): OpenAI {
 }
 
 export async function fetchModels(baseUrl: string, apiKey: string, providerType?: string): Promise<ModelInfo[]> {
-  // Anthropic: use GET /v1/models endpoint, fall back to presets on error
+  // Anthropic: use GET /v1/models endpoint
   if (providerType === 'anthropic') {
-    try {
-      return await fetchAnthropicModels(baseUrl, apiKey);
-    } catch (error) {
-      console.error('Error fetching Anthropic models:', error);
-      return ANTHROPIC_PRESET_MODELS.map(id => ({ id, name: id }));
-    }
+    return await fetchAnthropicModels(baseUrl, apiKey);
   }
 
   // Gemini uses native model listing API
   if (providerType === 'gemini') {
-    try {
-      return await fetchGeminiModels(baseUrl, apiKey);
-    } catch (error) {
-      console.error('Error fetching Gemini models:', error);
-      return GEMINI_PRESET_MODELS.map(id => ({ id, name: id }));
-    }
+    return await fetchGeminiModels(baseUrl, apiKey);
   }
 
   try {
