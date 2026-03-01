@@ -8,6 +8,8 @@ import { storage } from '@wxt-dev/storage';
 
 // ==================== 类型定义 ====================
 
+export type ProviderType = 'openai' | 'gemini' | 'anthropic';
+
 export interface AIProvider {
   id: string;
   name: string;
@@ -16,6 +18,7 @@ export interface AIProvider {
   models: string[];
   selectedModel: string;
   visionModelSupport: Record<string, boolean>;
+  providerType?: ProviderType;
 }
 
 export interface TrustedScript {
@@ -398,7 +401,7 @@ function normalizeProvider(provider: AIProvider): AIProvider {
       : models[0] || '';
   const visionModelSupport = normalizeVisionModelSupport(models, legacyProvider);
 
-  return {
+  const result: AIProvider = {
     id: provider.id,
     name: provider.name,
     baseUrl: provider.baseUrl,
@@ -407,6 +410,10 @@ function normalizeProvider(provider: AIProvider): AIProvider {
     selectedModel,
     visionModelSupport,
   };
+  if ((provider as any).providerType) {
+    result.providerType = (provider as any).providerType;
+  }
+  return result;
 }
 
 export function isVisionSupportedForModel(

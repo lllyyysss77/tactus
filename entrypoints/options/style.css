@@ -355,6 +355,11 @@ body {
   margin-bottom: 0;
 }
 
+.label-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
 .form-group input {
   width: 100%;
   padding: 12px 16px;

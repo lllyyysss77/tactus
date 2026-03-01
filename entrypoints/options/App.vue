@@ -33,13 +33,14 @@ import {
   type TrustedScript,
   type Language,
   type PresetAction,
+  type ProviderType,
 } from '../../utils/storage';
 import {
   getAllSkills,
   deleteSkill,
   type Skill,
 } from '../../utils/db';
-import { fetchModels } from '../../utils/api';
+import { fetchModels, GEMINI_PRESET_MODELS, ANTHROPIC_PRESET_MODELS } from '../../utils/api';
 import { importSkillFromFolder } from '../../utils/skillsImporter';
 import { t, type Translations } from '../../utils/i18n';
 import {
@@ -111,11 +112,16 @@ const formApiKey = ref('');
 const formModels = ref<string[]>([]);
 const formCustomModel = ref('');
 const formVisionModelSupport = ref<Record<string, boolean>>({});
+const formProviderType = ref<ProviderType>('openai');
 
 const isNewProvider = computed(() => selectedProviderId.value === 'new');
 
 const apiEndpointPreview = computed(() => {
   if (!formBaseUrl.value) return '';
+  if (formProviderType.value === 'anthropic') {
+    const base = formBaseUrl.value.endsWith('/') ? formBaseUrl.value.slice(0, -1) : formBaseUrl.value;
+    return base + '/v1/messages';
+  }
   return formBaseUrl.value.endsWith('/')
     ? formBaseUrl.value + 'chat/completions'
     : formBaseUrl.value + '/v1/chat/completions';
@@ -238,7 +244,7 @@ function debouncedAutoSave() {
 }
 
 watch(
-  [formName, formBaseUrl, formApiKey, formModels, formVisionModelSupport],
+  [formName, formBaseUrl, formApiKey, formModels, formVisionModelSupport, formProviderType],
   () => {
     if (skipAutoSave) return;
     if (!selectedProviderId.value) return;
@@ -263,6 +269,7 @@ function selectProvider(id: string) {
     formModels.value = Array.isArray(provider.models) ? [...provider.models] : [];
     formVisionModelSupport.value = { ...(provider.visionModelSupport || {}) };
     formCustomModel.value = '';
+    formProviderType.value = provider.providerType || 'openai';
     availableModels.value = [];
   }
   nextTick(() => { skipAutoSave = false; });
@@ -277,6 +284,7 @@ function addNewProvider() {
   formModels.value = [];
   formVisionModelSupport.value = {};
   formCustomModel.value = '';
+  formProviderType.value = 'openai';
   availableModels.value = [];
   nextTick(() => { skipAutoSave = false; });
 }
@@ -288,7 +296,7 @@ async function fetchAvailableModels() {
   }
   isFetchingModels.value = true;
   try {
-    const models = await fetchModels(formBaseUrl.value, formApiKey.value);
+    const models = await fetchModels(formBaseUrl.value, formApiKey.value, formProviderType.value);
     availableModels.value = models.map(m => m.id);
   } catch (e) {
     alert(i18n('fetchModelsFailed'));
@@ -308,6 +316,43 @@ function addModel(model: string) {
 function addCustomModel() {
   const model = formCustomModel.value.trim();
   if (model) { addModel(model); formCustomModel.value = ''; }
+}
+
+function handleProviderTypeChange(type: ProviderType) {
+  formProviderType.value = type;
+  // Auto-fill base URL and name based on provider type
+  if (type === 'gemini') {
+    if (!formBaseUrl.value || formBaseUrl.value === 'https://api.anthropic.com') {
+      formBaseUrl.value = 'https://generativelanguage.googleapis.com/v1beta/openai/';
+    }
+    if (!formName.value) formName.value = 'Google Gemini';
+  } else if (type === 'anthropic') {
+    if (!formBaseUrl.value || formBaseUrl.value === 'https://generativelanguage.googleapis.com/v1beta/openai/') {
+      formBaseUrl.value = 'https://api.anthropic.com';
+    }
+    if (!formName.value) formName.value = 'Anthropic Claude';
+  }
+}
+
+function loadPresetModels() {
+  const presets = formProviderType.value === 'gemini'
+    ? GEMINI_PRESET_MODELS
+    : formProviderType.value === 'anthropic'
+      ? ANTHROPIC_PRESET_MODELS
+      : [];
+  for (const model of presets) {
+    addModel(model);
+  }
+  // Auto-enable vision for known vision-capable models
+  const visionModels = [
+    'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash',
+    'claude-sonnet-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229',
+  ];
+  for (const model of presets) {
+    if (visionModels.includes(model)) {
+      formVisionModelSupport.value[model] = true;
+    }
+  }
 }
 
 function removeModel(model: string) {
@@ -348,6 +393,9 @@ async function saveCurrentProvider(silent = false) {
         formModels.value.map(model => [model, Boolean(formVisionModelSupport.value[model])]),
       ),
     };
+    if (formProviderType.value !== 'openai') {
+      provider.providerType = formProviderType.value;
+    }
     await saveProvider(provider);
     providers.value = await getAllProviders();
     if (!activeProviderId.value || isNewProvider.value) {
@@ -782,6 +830,33 @@ async function removePreset(id: string) {
               </div>
               <div class="form-body">
                 <div class="form-group">
+                  <label>{{ i18n('providerType') }}</label>
+                  <div class="auth-type-selector">
+                    <button
+                      class="auth-type-btn"
+                      :class="{ active: formProviderType === 'openai' }"
+                      @click="handleProviderTypeChange('openai')"
+                    >
+                      {{ i18n('providerTypeOpenAI') }}
+                    </button>
+                    <button
+                      class="auth-type-btn"
+                      :class="{ active: formProviderType === 'gemini' }"
+                      @click="handleProviderTypeChange('gemini')"
+                    >
+                      {{ i18n('providerTypeGemini') }}
+                    </button>
+                    <button
+                      class="auth-type-btn"
+                      :class="{ active: formProviderType === 'anthropic' }"
+                      @click="handleProviderTypeChange('anthropic')"
+                    >
+                      {{ i18n('providerTypeAnthropic') }}
+                    </button>
+                  </div>
+                  <p class="form-hint">{{ i18n('providerTypeHint') }}</p>
+                </div>
+                <div class="form-group">
                   <label>{{ i18n('providerName') }}</label>
                   <input v-model="formName" :placeholder="i18n('providerNamePlaceholder')" />
                 </div>
@@ -798,7 +873,10 @@ async function removePreset(id: string) {
                 <div class="form-group">
                   <div class="label-row">
                     <label>{{ i18n('modelList') }}</label>
-                    <button class="fetch-btn" @click="fetchAvailableModels" :disabled="isFetchingModels">{{ isFetchingModels ? i18n('fetchingModels') : i18n('fetchModels') }}</button>
+                    <div class="label-row-actions">
+                      <button v-if="formProviderType === 'gemini' || formProviderType === 'anthropic'" class="fetch-btn" @click="loadPresetModels">{{ i18n('loadPresetModels') }}</button>
+                      <button class="fetch-btn" @click="fetchAvailableModels" :disabled="isFetchingModels">{{ isFetchingModels ? i18n('fetchingModels') : i18n('fetchModels') }}</button>
+                    </div>
                   </div>
                   <div v-if="availableModels.length > 0" class="available-models">
                     <div class="available-models-label">{{ i18n('availableModels') }}</div>

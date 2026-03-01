@@ -177,6 +177,15 @@ export interface Translations {
   fillRequired: string;
   addAtLeastOneModel: string;
   fetchModelsFailed: string;
+
+  // Provider 类型
+  providerType: string;
+  providerTypeOpenAI: string;
+  providerTypeGemini: string;
+  providerTypeAnthropic: string;
+  providerTypeHint: string;
+  loadPresetModels: string;
+  presetModelsLoaded: string;
   
   // 工具状态
   extractingPage: string;
@@ -378,6 +387,15 @@ const en: Translations = {
   fillRequired: 'Please fill in provider name, Base URL and API Key',
   addAtLeastOneModel: 'Please add at least one model',
   fetchModelsFailed: 'Failed to fetch models',
+
+  // Provider 类型
+  providerType: 'Provider Type',
+  providerTypeOpenAI: 'OpenAI Compatible',
+  providerTypeGemini: 'Google Gemini',
+  providerTypeAnthropic: 'Anthropic Claude',
+  providerTypeHint: 'Select provider type to auto-fill Base URL and get preset models',
+  loadPresetModels: 'Load Preset Models',
+  presetModelsLoaded: 'Preset models loaded',
   
   // 工具状态
   extractingPage: 'Extracting page content...',
@@ -579,6 +597,15 @@ const zhCN: Translations = {
   fillRequired: '请填写服务商名称、Base URL 和 API Key',
   addAtLeastOneModel: '请至少添加一个模型',
   fetchModelsFailed: '获取模型列表失败',
+
+  // Provider 类型
+  providerType: '服务商类型',
+  providerTypeOpenAI: 'OpenAI 兼容',
+  providerTypeGemini: 'Google Gemini',
+  providerTypeAnthropic: 'Anthropic Claude',
+  providerTypeHint: '选择服务商类型以自动填充 Base URL 并获取预设模型',
+  loadPresetModels: '加载预设模型',
+  presetModelsLoaded: '已加载预设模型',
   
   // 工具状态
   extractingPage: '正在提取网页内容...',

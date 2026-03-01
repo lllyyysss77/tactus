@@ -2,15 +2,15 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ChatMessage } from './db';
 import { isVisionSupportedForModel, type AIProvider } from './storage';
-import { 
-  getFilteredTools, 
-  generateContextPrompt, 
-  getToolStatusText, 
+import {
+  getFilteredTools,
+  generateContextPrompt,
+  getToolStatusText,
   isMcpTool,
   parseMcpToolName,
   type FunctionTool,
-  type ToolCall, 
-  type ToolResult, 
+  type ToolCall,
+  type ToolResult,
   type SkillInfo,
   type Language,
 } from './tools';
@@ -20,6 +20,22 @@ export interface ModelInfo {
   id: string;
   name?: string;
 }
+
+// ============ Preset Models ============
+
+export const GEMINI_PRESET_MODELS = [
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-pro',
+  'gemini-1.5-flash',
+];
+
+export const ANTHROPIC_PRESET_MODELS = [
+  'claude-sonnet-4-20250514',
+  'claude-3-5-sonnet-20241022',
+  'claude-3-5-haiku-20241022',
+  'claude-3-opus-20240229',
+];
 
 // ============ 容错机制配置 ============
 
@@ -207,6 +223,7 @@ export function setLastApiMessages(messages: ApiMessage[]) {
   lastApiMessages = messages;
 }
 
+
 // 解析 Base URL：
 // - 以 "/" 结尾：按原样使用（不自动拼接 /v1）
 // - 不以 "/" 结尾：自动补充 /v1（若已是 /v1 则保持不变）
@@ -228,14 +245,20 @@ function createClient(provider: AIProvider): OpenAI {
   });
 }
 
-export async function fetchModels(baseUrl: string, apiKey: string): Promise<ModelInfo[]> {
+export async function fetchModels(baseUrl: string, apiKey: string, providerType?: string): Promise<ModelInfo[]> {
+  // Anthropic doesn't have a model listing endpoint — return presets
+  if (providerType === 'anthropic') {
+    return ANTHROPIC_PRESET_MODELS.map(id => ({ id, name: id }));
+  }
+
   try {
+    // For Gemini, try the OpenAI-compatible endpoint first
     const client = new OpenAI({
       apiKey,
       baseURL: resolveBaseUrl(baseUrl),
       dangerouslyAllowBrowser: true,
     });
-    
+
     const response = await client.models.list();
     return response.data.map(m => ({
       id: m.id,
@@ -243,6 +266,10 @@ export async function fetchModels(baseUrl: string, apiKey: string): Promise<Mode
     }));
   } catch (error) {
     console.error('Error fetching models:', error);
+    // For Gemini, fall back to presets on failure
+    if (providerType === 'gemini') {
+      return GEMINI_PRESET_MODELS.map(id => ({ id, name: id }));
+    }
     return [];
   }
 }
