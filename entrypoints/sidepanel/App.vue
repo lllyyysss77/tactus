@@ -154,6 +154,27 @@ const isTabLocked = computed(() => {
   return isLoading.value && sharePageContent.value;
 });
 
+// 锁定时记住的 tabId，确保内容获取和脚本执行在正确的标签页上执行
+const lockedTabId = ref<number | null>(null);
+
+// 捕获当前活跃标签页 ID 并锁定
+async function captureLockedTab(): Promise<void> {
+  if (!sharePageContent.value) return;
+  try {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      lockedTabId.value = tab.id;
+    }
+  } catch (e) {
+    console.error('Failed to capture locked tab:', e);
+  }
+}
+
+// 释放锁定的标签页
+function releaseLockedTab(): void {
+  lockedTabId.value = null;
+}
+
 // 计算属性
 const isEditing = computed(() => editingMessageIndex.value !== null);
 
@@ -328,6 +349,7 @@ async function regenerateResponse(): Promise<void> {
   }
   
   isLoading.value = true;
+  await captureLockedTab();
   toolStatus.value = null;
   chatAbortController.value?.abort();
   chatAbortController.value = new AbortController();
@@ -358,11 +380,22 @@ async function regenerateResponse(): Promise<void> {
       description: s.metadata.description,
     }));
     
-    // 获取当前页面信息
+    // 获取当前页面信息（优先使用锁定的 tabId）
     let pageInfo: { domain: string; title: string; url: string } | undefined;
     if (sharePageContent.value) {
       try {
-        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+        let tab: any = null;
+        if (lockedTabId.value) {
+          try {
+            tab = await browser.tabs.get(lockedTabId.value);
+          } catch {
+            // 锁定标签页已关闭，回退
+          }
+        }
+        if (!tab) {
+          const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+          tab = activeTab;
+        }
         if (tab?.url && tab?.title) {
           const urlObj = new URL(tab.url);
           pageInfo = {
@@ -375,15 +408,15 @@ async function regenerateResponse(): Promise<void> {
         console.error('Failed to get page info:', e);
       }
     }
-    
+
     // 获取当前语言设置
     const currentLanguage = await getLanguage();
-    
+
     // 获取之前保存的 API 上下文（已在 saveEditMessage 中正确截取）
     const previousApiMessages = currentSession.value?.apiMessages || getLastApiMessages();
     // 只有当之前有消息时才传入（排除只有 system 消息的情况）
     const hasValidPreviousContext = previousApiMessages.length > 1;
-    
+
     for await (const event of streamChat(
       provider,
       messages.value.slice(0, -1),
@@ -450,6 +483,7 @@ async function regenerateResponse(): Promise<void> {
   } finally {
     chatAbortController.value = null;
     isLoading.value = false;
+    releaseLockedTab();
     toolStatus.value = null;
     await saveCurrentSession();
   }
@@ -784,6 +818,7 @@ function terminateCurrentGeneration(): void {
   chatAbortController.value.abort();
   toolStatus.value = currentLanguage.value === 'zh-CN' ? '已终止' : 'Stopped';
   isLoading.value = false;
+  releaseLockedTab();
 }
 
 // Initialize
@@ -1064,13 +1099,32 @@ const scrollToBottom = () => {
 // 使用 Readability + Turndown 提取清洗后的页面内容
 async function extractCleanPageContent(): Promise<string> {
   try {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-    if (!tab.id || !tab.url) {
+    // 优先使用锁定的 tabId，确保在 AI 回复期间始终操作锁定时的标签页
+    let targetTabId = lockedTabId.value;
+    let targetTab: any = null;
+
+    if (targetTabId) {
+      // 使用锁定的 tabId 获取标签页信息
+      try {
+        targetTab = await browser.tabs.get(targetTabId);
+      } catch {
+        // 锁定的标签页可能已关闭，回退到当前活跃标签页
+        targetTabId = null;
+      }
+    }
+
+    if (!targetTabId) {
+      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+      targetTab = tab;
+      targetTabId = tab?.id ?? null;
+    }
+
+    if (!targetTabId || !targetTab?.url) {
       return '无法获取当前页面信息';
     }
 
     const results = await browser.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: { tabId: targetTabId },
       func: () => {
         // 返回完整的 HTML 和 URL
         return {
@@ -1191,7 +1245,7 @@ ${skill.references.length > 0
         };
       }
       
-      const execResult = await executeScript({ skill, script, arguments: scriptArgs });
+      const execResult = await executeScript({ skill, script, tabId: lockedTabId.value ?? undefined, arguments: scriptArgs });
       return {
         tool_call_id: toolCall.id,
         name: toolCall.name,
@@ -1335,6 +1389,7 @@ async function sendMessage() {
   
   // 立即设置 loading 状态，防止重复调用
   isLoading.value = true;
+  await captureLockedTab();
   toolStatus.value = null;
   chatAbortController.value?.abort();
   chatAbortController.value = new AbortController();
@@ -1343,6 +1398,7 @@ async function sendMessage() {
   if (!provider) {
     chatAbortController.value = null;
     isLoading.value = false;
+    releaseLockedTab();
     alert(i18n('noModelConfig'));
     openSettings();
     return;
@@ -1399,11 +1455,22 @@ async function sendMessage() {
       description: s.metadata.description,
     }));
 
-    // 获取当前页面信息
+    // 获取当前页面信息（优先使用锁定的 tabId）
     let pageInfo: { domain: string; title: string; url: string } | undefined;
     if (sharePageContent.value) {
       try {
-        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+        let tab: any = null;
+        if (lockedTabId.value) {
+          try {
+            tab = await browser.tabs.get(lockedTabId.value);
+          } catch {
+            // 锁定标签页已关闭，回退
+          }
+        }
+        if (!tab) {
+          const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+          tab = activeTab;
+        }
         if (tab?.url && tab?.title) {
           const urlObj = new URL(tab.url);
           pageInfo = {
@@ -1426,9 +1493,9 @@ async function sendMessage() {
     const hasValidPreviousContext = previousApiMessages.length > 1;
 
     for await (const event of streamChat(
-      provider, 
-      messages.value.slice(0, -1), 
-      { sharePageContent: sharePageContent.value, skills: skillsInfo, mcpTools: mcpTools.value, pageInfo, language: currentLanguage }, 
+      provider,
+      messages.value.slice(0, -1),
+      { sharePageContent: sharePageContent.value, skills: skillsInfo, mcpTools: mcpTools.value, pageInfo, language: currentLanguage },
       reactConfig,
       undefined, // retryConfig 使用默认值
       hasValidPreviousContext ? previousApiMessages : undefined
@@ -1496,6 +1563,7 @@ async function sendMessage() {
   } finally {
     chatAbortController.value = null;
     isLoading.value = false;
+    releaseLockedTab();
     toolStatus.value = null;
     // 不自动滚动，让用户自行控制查看位置
     await saveCurrentSession();
