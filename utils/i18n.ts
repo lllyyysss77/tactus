@@ -183,9 +183,6 @@ export interface Translations {
   providerTypeOpenAI: string;
   providerTypeGemini: string;
   providerTypeAnthropic: string;
-  providerTypeHint: string;
-  loadPresetModels: string;
-  presetModelsLoaded: string;
   
   // 工具状态
   extractingPage: string;
@@ -239,7 +236,7 @@ const en: Translations = {
   providerNamePlaceholder: 'e.g. OpenAI, DeepSeek',
   baseUrl: 'Base URL',
   baseUrlPlaceholder: 'https://api.openai.com',
-  baseUrlHint: 'Defaults to auto-completing /v1/chat/completions. If the URL ends with "/", only /chat/completions is appended.',
+  baseUrlHint: 'If the URL ends with "/", auto-completion of the API version prefix is disabled.',
   apiKey: 'API Key',
   apiKeyPlaceholder: 'sk-...',
   modelList: 'Models',
@@ -391,11 +388,8 @@ const en: Translations = {
   // Provider 类型
   providerType: 'Provider Type',
   providerTypeOpenAI: 'OpenAI Compatible',
-  providerTypeGemini: 'Google Gemini',
-  providerTypeAnthropic: 'Anthropic Claude',
-  providerTypeHint: 'Select provider type to auto-fill Base URL and get preset models',
-  loadPresetModels: 'Load Preset Models',
-  presetModelsLoaded: 'Preset models loaded',
+  providerTypeGemini: 'Gemini',
+  providerTypeAnthropic: 'Anthropic',
   
   // 工具状态
   extractingPage: 'Extracting page content...',
@@ -449,7 +443,7 @@ const zhCN: Translations = {
   providerNamePlaceholder: '例如：OpenAI, DeepSeek',
   baseUrl: 'Base URL',
   baseUrlPlaceholder: 'https://api.openai.com',
-  baseUrlHint: '默认自动补全 /v1/chat/completions，若以 / 结尾则只补全 /chat/completions',
+  baseUrlHint: '若以 / 结尾则禁用自动补全的 API 版本',
   apiKey: 'API Key',
   apiKeyPlaceholder: 'sk-...',
   modelList: '模型列表',
@@ -601,11 +595,8 @@ const zhCN: Translations = {
   // Provider 类型
   providerType: '服务商类型',
   providerTypeOpenAI: 'OpenAI 兼容',
-  providerTypeGemini: 'Google Gemini',
-  providerTypeAnthropic: 'Anthropic Claude',
-  providerTypeHint: '选择服务商类型以自动填充 Base URL 并获取预设模型',
-  loadPresetModels: '加载预设模型',
-  presetModelsLoaded: '已加载预设模型',
+  providerTypeGemini: 'Gemini',
+  providerTypeAnthropic: 'Anthropic',
   
   // 工具状态
   extractingPage: '正在提取网页内容...',

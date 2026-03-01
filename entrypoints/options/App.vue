@@ -40,7 +40,7 @@ import {
   deleteSkill,
   type Skill,
 } from '../../utils/db';
-import { fetchModels, GEMINI_PRESET_MODELS, ANTHROPIC_PRESET_MODELS } from '../../utils/api';
+import { fetchModels } from '../../utils/api';
 import { importSkillFromFolder } from '../../utils/skillsImporter';
 import { t, type Translations } from '../../utils/i18n';
 import {
@@ -117,14 +117,43 @@ const formProviderType = ref<ProviderType>('openai');
 const isNewProvider = computed(() => selectedProviderId.value === 'new');
 
 const apiEndpointPreview = computed(() => {
-  if (!formBaseUrl.value) return '';
-  if (formProviderType.value === 'anthropic') {
-    const base = formBaseUrl.value.endsWith('/') ? formBaseUrl.value.slice(0, -1) : formBaseUrl.value;
-    return base + '/v1/messages';
+  const base = formBaseUrl.value || getDefaultBaseUrl();
+  if (!base) return '';
+  if (formProviderType.value === 'gemini') {
+    const cleaned = base.replace(/\/+$/, '');
+    return cleaned + '/v1beta/models/{model}:streamGenerateContent';
   }
-  return formBaseUrl.value.endsWith('/')
-    ? formBaseUrl.value + 'chat/completions'
-    : formBaseUrl.value + '/v1/chat/completions';
+  if (formProviderType.value === 'anthropic') {
+    const cleaned = base.endsWith('/') ? base.slice(0, -1) : base;
+    return cleaned + '/v1/messages';
+  }
+  return base.endsWith('/')
+    ? base + 'chat/completions'
+    : base + '/v1/chat/completions';
+});
+
+function getDefaultBaseUrl(): string {
+  if (formProviderType.value === 'gemini') return 'https://generativelanguage.googleapis.com';
+  if (formProviderType.value === 'anthropic') return 'https://api.anthropic.com';
+  return '';
+}
+
+function getDefaultProviderName(): string {
+  if (formProviderType.value === 'gemini') return 'Gemini';
+  if (formProviderType.value === 'anthropic') return 'Anthropic';
+  return '';
+}
+
+const providerNameDynPlaceholder = computed(() => {
+  if (formProviderType.value === 'gemini') return 'Gemini';
+  if (formProviderType.value === 'anthropic') return 'Anthropic';
+  return i18n('providerNamePlaceholder');
+});
+
+const baseUrlDynPlaceholder = computed(() => {
+  if (formProviderType.value === 'gemini') return 'https://generativelanguage.googleapis.com';
+  if (formProviderType.value === 'anthropic') return 'https://api.anthropic.com';
+  return i18n('baseUrlPlaceholder');
 });
 
 // Skills 管理
@@ -237,7 +266,9 @@ function debouncedAutoSave() {
     if (!selectedProviderId.value) return;
     // 新建 provider 时必须填完必填字段且至少有一个模型
     if (isNewProvider.value) {
-      if (!formName.value || !formBaseUrl.value || !formApiKey.value || formModels.value.length === 0) return;
+      const needsExplicitUrl = formProviderType.value === 'openai';
+      const needsExplicitName = formProviderType.value === 'openai';
+      if ((needsExplicitName && !formName.value) || (needsExplicitUrl && !formBaseUrl.value) || !formApiKey.value || formModels.value.length === 0) return;
     }
     saveCurrentProvider(true);
   }, 800);
@@ -290,13 +321,14 @@ function addNewProvider() {
 }
 
 async function fetchAvailableModels() {
-  if (!formBaseUrl.value || !formApiKey.value) {
+  const effectiveBaseUrl = formBaseUrl.value || getDefaultBaseUrl();
+  if (!effectiveBaseUrl || !formApiKey.value) {
     alert(i18n('fillRequired'));
     return;
   }
   isFetchingModels.value = true;
   try {
-    const models = await fetchModels(formBaseUrl.value, formApiKey.value, formProviderType.value);
+    const models = await fetchModels(effectiveBaseUrl, formApiKey.value, formProviderType.value);
     availableModels.value = models.map(m => m.id);
   } catch (e) {
     alert(i18n('fetchModelsFailed'));
@@ -320,38 +352,14 @@ function addCustomModel() {
 
 function handleProviderTypeChange(type: ProviderType) {
   formProviderType.value = type;
-  // Auto-fill base URL and name based on provider type
-  if (type === 'gemini') {
-    if (!formBaseUrl.value || formBaseUrl.value === 'https://api.anthropic.com' || formBaseUrl.value === 'https://generativelanguage.googleapis.com/v1beta/openai/') {
-      formBaseUrl.value = 'https://generativelanguage.googleapis.com';
-    }
-    if (!formName.value) formName.value = 'Google Gemini';
-  } else if (type === 'anthropic') {
-    if (!formBaseUrl.value || formBaseUrl.value === 'https://generativelanguage.googleapis.com' || formBaseUrl.value === 'https://generativelanguage.googleapis.com/v1beta/openai/') {
-      formBaseUrl.value = 'https://api.anthropic.com';
-    }
-    if (!formName.value) formName.value = 'Anthropic Claude';
+  // Clear base URL and name if they match another provider's default
+  const defaultUrls = ['https://api.anthropic.com', 'https://generativelanguage.googleapis.com', 'https://generativelanguage.googleapis.com/v1beta/openai/'];
+  if (defaultUrls.includes(formBaseUrl.value)) {
+    formBaseUrl.value = '';
   }
-}
-
-function loadPresetModels() {
-  const presets = formProviderType.value === 'gemini'
-    ? GEMINI_PRESET_MODELS
-    : formProviderType.value === 'anthropic'
-      ? ANTHROPIC_PRESET_MODELS
-      : [];
-  for (const model of presets) {
-    addModel(model);
-  }
-  // Auto-enable vision for known vision-capable models
-  const visionModels = [
-    'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash',
-    'claude-sonnet-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229',
-  ];
-  for (const model of presets) {
-    if (visionModels.includes(model)) {
-      formVisionModelSupport.value[model] = true;
-    }
+  const defaultNames = ['Gemini', 'Anthropic', 'Google Gemini', 'Anthropic Claude'];
+  if (defaultNames.includes(formName.value)) {
+    formName.value = '';
   }
 }
 
@@ -369,7 +377,9 @@ function toggleModelVision(model: string): void {
 }
 
 async function saveCurrentProvider(silent = false) {
-  if (!formName.value || !formBaseUrl.value || !formApiKey.value) {
+  const effectiveName = formName.value || getDefaultProviderName();
+  const effectiveBaseUrl = formBaseUrl.value || getDefaultBaseUrl();
+  if (!effectiveName || !effectiveBaseUrl || !formApiKey.value) {
     if (!silent) alert(i18n('fillRequired'));
     return;
   }
@@ -384,8 +394,8 @@ async function saveCurrentProvider(silent = false) {
       ? existingProvider.selectedModel : formModels.value[0];
     const provider: AIProvider = {
       id: isNewProvider.value ? crypto.randomUUID() : selectedProviderId.value!,
-      name: formName.value,
-      baseUrl: formBaseUrl.value,
+      name: effectiveName,
+      baseUrl: effectiveBaseUrl,
       apiKey: formApiKey.value,
       models: [...formModels.value],
       selectedModel,
@@ -854,16 +864,15 @@ async function removePreset(id: string) {
                       {{ i18n('providerTypeAnthropic') }}
                     </button>
                   </div>
-                  <p class="form-hint">{{ i18n('providerTypeHint') }}</p>
                 </div>
                 <div class="form-group">
                   <label>{{ i18n('providerName') }}</label>
-                  <input v-model="formName" :placeholder="i18n('providerNamePlaceholder')" />
+                  <input v-model="formName" :placeholder="providerNameDynPlaceholder" />
                 </div>
                 <div class="form-group">
                   <label>{{ i18n('baseUrl') }}</label>
-                  <input v-model="formBaseUrl" :placeholder="i18n('baseUrlPlaceholder')" />
-                  <p class="form-hint">{{ i18n('baseUrlHint') }}</p>
+                  <input v-model="formBaseUrl" :placeholder="baseUrlDynPlaceholder" />
+                  <p v-if="formProviderType === 'openai'" class="form-hint">{{ i18n('baseUrlHint') }}</p>
                   <p v-if="apiEndpointPreview" class="api-endpoint-preview">API endpoint: {{ apiEndpointPreview }}</p>
                 </div>
                 <div class="form-group">
@@ -874,7 +883,6 @@ async function removePreset(id: string) {
                   <div class="label-row">
                     <label>{{ i18n('modelList') }}</label>
                     <div class="label-row-actions">
-                      <button v-if="formProviderType === 'gemini' || formProviderType === 'anthropic'" class="fetch-btn" @click="loadPresetModels">{{ i18n('loadPresetModels') }}</button>
                       <button class="fetch-btn" @click="fetchAvailableModels" :disabled="isFetchingModels">{{ isFetchingModels ? i18n('fetchingModels') : i18n('fetchModels') }}</button>
                     </div>
                   </div>
