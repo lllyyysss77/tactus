@@ -492,8 +492,9 @@ export async function fetchGeminiModels(baseUrl: string, apiKey: string): Promis
 
     if (data.models && Array.isArray(data.models)) {
       for (const model of data.models as GeminiModelInfo[]) {
-        // Only include models that support content generation
-        if (model.supportedGenerationMethods?.includes('generateContent')) {
+        // Include models that support content generation,
+        // or all models if supportedGenerationMethods is not provided (some proxies strip this field)
+        if (!model.supportedGenerationMethods || model.supportedGenerationMethods.includes('generateContent')) {
           // Model name is like "models/gemini-2.0-flash", extract just the model ID
           const id = model.name.replace(/^models\//, '');
           models.push({

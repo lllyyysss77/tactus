@@ -367,6 +367,42 @@ function sanitizeMessagesForVision(messages: ApiMessage[], allowImages: boolean)
   });
 }
 
+// ============ Model Fetching ============
+
+export async function fetchAnthropicModels(baseUrl: string, apiKey: string): Promise<{ id: string; name?: string }[]> {
+  const base = resolveAnthropicBaseUrl(baseUrl);
+  try {
+    const response = await fetch(`${base}/models?limit=100`, {
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const models: { id: string; name?: string }[] = [];
+
+    if (data.data && Array.isArray(data.data)) {
+      for (const model of data.data) {
+        models.push({
+          id: model.id,
+          name: model.display_name || model.id,
+        });
+      }
+    }
+
+    return models;
+  } catch (error) {
+    console.error('Error fetching Anthropic models:', error);
+    throw error;
+  }
+}
+
 // ============ Main Streaming Function ============
 
 import { setLastApiMessages, type FunctionCallingConfig, type ToolExecutor } from './api';

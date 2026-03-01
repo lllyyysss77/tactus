@@ -15,7 +15,7 @@ import {
   type Language,
 } from './tools';
 import type { McpTool } from './mcp';
-import { streamChatAnthropic, streamChatAnthropicSimple } from './anthropic';
+import { streamChatAnthropic, streamChatAnthropicSimple, fetchAnthropicModels } from './anthropic';
 import { streamChatGemini, streamChatGeminiSimple, fetchGeminiModels } from './gemini';
 
 export interface ModelInfo {
@@ -248,9 +248,14 @@ function createClient(provider: AIProvider): OpenAI {
 }
 
 export async function fetchModels(baseUrl: string, apiKey: string, providerType?: string): Promise<ModelInfo[]> {
-  // Anthropic doesn't have a model listing endpoint — return presets
+  // Anthropic: use GET /v1/models endpoint, fall back to presets on error
   if (providerType === 'anthropic') {
-    return ANTHROPIC_PRESET_MODELS.map(id => ({ id, name: id }));
+    try {
+      return await fetchAnthropicModels(baseUrl, apiKey);
+    } catch (error) {
+      console.error('Error fetching Anthropic models:', error);
+      return ANTHROPIC_PRESET_MODELS.map(id => ({ id, name: id }));
+    }
   }
 
   // Gemini uses native model listing API
