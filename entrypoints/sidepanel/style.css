@@ -2008,3 +2008,107 @@ body {
   flex-shrink: 0;
   color: var(--accent);
 }
+
+
+/* ========== Tab Lock & Glow Animation ========== */
+.current-tab-chip.locked {
+  cursor: not-allowed;
+  position: relative;
+}
+
+.current-tab-chip .lock-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Glow animation - gradient border effect */
+.current-tab-chip.glow-animation {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
+.current-tab-chip.glow-animation::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0%,
+    var(--accent-secondary) 25%,
+    var(--accent) 50%,
+    var(--accent-secondary) 75%,
+    var(--accent) 100%
+  );
+  background-size: 200% 100%;
+  animation: glowBorder 2s linear infinite;
+  z-index: -1;
+  opacity: 0.8;
+}
+
+.current-tab-chip.glow-animation::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 8px;
+  background: var(--muted);
+  z-index: -1;
+}
+
+.current-tab-chip.glow-animation.active::after {
+  background: rgba(184, 134, 11, 0.12);
+}
+
+[data-theme="dark"] .current-tab-chip.glow-animation::after {
+  background: var(--muted);
+}
+
+[data-theme="dark"] .current-tab-chip.glow-animation.active::after {
+  background: rgba(212, 168, 75, 0.15);
+}
+
+@keyframes glowBorder {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+/* Breathing pulse effect for extra emphasis */
+.current-tab-chip.glow-animation {
+  animation: breathPulse 2s ease-in-out infinite;
+}
+
+@keyframes breathPulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(184, 134, 11, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(184, 134, 11, 0.6);
+  }
+}
+
+[data-theme="dark"] .current-tab-chip.glow-animation {
+  animation: breathPulseDark 2s ease-in-out infinite;
+}
+
+@keyframes breathPulseDark {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(212, 168, 75, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(212, 168, 75, 0.6);
+  }
+}

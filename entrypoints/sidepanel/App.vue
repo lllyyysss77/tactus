@@ -149,6 +149,18 @@ const copiedMessageIndex = ref<number | null>(null);
 // 复制按钮位置状态（按消息索引存储：'top' | 'bottom'）
 const copyButtonPosition = ref<Record<number, 'top' | 'bottom'>>({});
 
+// 标签页锁定状态 - 当用户正在输入或有活跃对话时锁定
+const isTabLocked = computed(() => {
+  // 条件1: 用户正在输入
+  const isTyping = inputText.value.trim().length > 0;
+  // 条件2: AI 正在响应
+  const isResponding = isLoading.value;
+  // 条件3: 有活跃对话（当前会话有消息）
+  const hasActiveConversation = messages.value.length > 0;
+
+  return (isTyping || isResponding || hasActiveConversation) && sharePageContent.value;
+});
+
 // 计算属性
 const isEditing = computed(() => editingMessageIndex.value !== null);
 
@@ -554,6 +566,10 @@ async function refreshActiveTabInfo(): Promise<void> {
 }
 
 async function toggleShareCurrentTab(): Promise<void> {
+  // 如果标签页被锁定，不允许切换
+  if (isTabLocked.value) {
+    return;
+  }
   sharePageContent.value = !sharePageContent.value;
 }
 
@@ -1963,11 +1979,17 @@ function rejectScript() {
       <div class="tab-share-row">
         <button
           class="current-tab-chip"
-          :class="{ active: sharePageContent, disabled: !activeTabInfo }"
+          :class="{ active: sharePageContent, disabled: !activeTabInfo, locked: isTabLocked, 'glow-animation': isTabLocked }"
           :disabled="!activeTabInfo"
           :title="activeTabButtonTitle"
           @click="toggleShareCurrentTab"
         >
+          <span v-if="isTabLocked" class="lock-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </span>
           <span class="tab-favicon" :class="{ placeholder: !activeTabInfo?.faviconUrl }">
             <img v-if="activeTabInfo?.faviconUrl" :src="activeTabInfo.faviconUrl" alt="" />
             <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
