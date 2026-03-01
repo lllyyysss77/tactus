@@ -230,7 +230,7 @@ function convertToGeminiContents(
           } catch {}
           parts.push({
             functionCall: {
-              name: tc.function.name,
+              name: sanitizeFunctionNameForGemini(tc.function.name),
               args,
             },
           });
@@ -247,7 +247,7 @@ function convertToGeminiContents(
       // Function responses go as user messages with functionResponse parts
       const functionResponsePart: GeminiFunctionResponsePart = {
         functionResponse: {
-          name: msg.name || '',
+          name: sanitizeFunctionNameForGemini(msg.name || ''),
           response: {
             result: typeof msg.content === 'string' ? msg.content : '',
           },
@@ -276,19 +276,70 @@ function convertToGeminiContents(
   return { systemInstruction, contents };
 }
 
+/**
+ * Gemini only supports a subset of JSON Schema properties in function declarations.
+ * Recursively strip unsupported properties to avoid 400 errors.
+ */
+const GEMINI_SUPPORTED_SCHEMA_KEYS = new Set([
+  'type', 'description', 'properties', 'required', 'items', 'enum', 'nullable',
+]);
+
+function sanitizeSchemaForGemini(schema: any): any {
+  if (!schema || typeof schema !== 'object') return schema;
+  if (Array.isArray(schema)) return schema.map(sanitizeSchemaForGemini);
+
+  const cleaned: Record<string, any> = {};
+  for (const key of Object.keys(schema)) {
+    if (!GEMINI_SUPPORTED_SCHEMA_KEYS.has(key)) continue;
+
+    if (key === 'properties' && typeof schema[key] === 'object') {
+      const cleanedProps: Record<string, any> = {};
+      for (const [propName, propValue] of Object.entries(schema[key])) {
+        cleanedProps[propName] = sanitizeSchemaForGemini(propValue);
+      }
+      cleaned[key] = cleanedProps;
+    } else if (key === 'items' && typeof schema[key] === 'object') {
+      cleaned[key] = sanitizeSchemaForGemini(schema[key]);
+    } else {
+      cleaned[key] = schema[key];
+    }
+  }
+
+  return cleaned;
+}
+
+/**
+ * Gemini function names only support letters, numbers, and underscores.
+ * Sanitize names (e.g. MCP tool names with hyphens) and maintain a mapping
+ * so we can resolve them back to original names when processing responses.
+ */
+let geminiToolNameMap: Map<string, string> = new Map();
+
+function sanitizeFunctionNameForGemini(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_]/g, '_');
+}
+
+function resolveGeminiToolName(name: string): string {
+  return geminiToolNameMap.get(name) || name;
+}
+
 function convertToGeminiTools(tools: FunctionTool[]): GeminiTool[] {
+  geminiToolNameMap = new Map();
+
   const declarations: GeminiFunctionDeclaration[] = tools.map((t) => {
+    const originalName = t.function.name;
+    const safeName = sanitizeFunctionNameForGemini(originalName);
+    if (safeName !== originalName) {
+      geminiToolNameMap.set(safeName, originalName);
+    }
+
     const decl: GeminiFunctionDeclaration = {
-      name: t.function.name,
+      name: safeName,
       description: t.function.description,
     };
     // Only include parameters if there are actual properties
     if (t.function.parameters && Object.keys(t.function.parameters.properties || {}).length > 0) {
-      // Clean up the schema for Gemini compatibility
-      const params = { ...t.function.parameters };
-      // Gemini doesn't support additionalProperties in function declarations
-      delete (params as any).additionalProperties;
-      decl.parameters = params;
+      decl.parameters = sanitizeSchemaForGemini(t.function.parameters);
     }
     return decl;
   });
@@ -787,7 +838,7 @@ export async function* streamChatGemini(
                 const fc = part.functionCall;
                 toolCalls.push({
                   id: `gemini-fc-${functionCallCounter}-${Date.now()}`,
-                  name: fc.name,
+                  name: resolveGeminiToolName(fc.name),
                   arguments: JSON.stringify(fc.args || {}),
                 });
               }
