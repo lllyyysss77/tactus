@@ -16,6 +16,7 @@ import {
 } from './tools';
 import type { McpTool } from './mcp';
 import { streamChatAnthropic, streamChatAnthropicSimple } from './anthropic';
+import { streamChatGemini, streamChatGeminiSimple, fetchGeminiModels } from './gemini';
 
 export interface ModelInfo {
   id: string;
@@ -252,8 +253,17 @@ export async function fetchModels(baseUrl: string, apiKey: string, providerType?
     return ANTHROPIC_PRESET_MODELS.map(id => ({ id, name: id }));
   }
 
+  // Gemini uses native model listing API
+  if (providerType === 'gemini') {
+    try {
+      return await fetchGeminiModels(baseUrl, apiKey);
+    } catch (error) {
+      console.error('Error fetching Gemini models:', error);
+      return GEMINI_PRESET_MODELS.map(id => ({ id, name: id }));
+    }
+  }
+
   try {
-    // For Gemini, try the OpenAI-compatible endpoint first
     const client = new OpenAI({
       apiKey,
       baseURL: resolveBaseUrl(baseUrl),
@@ -267,10 +277,6 @@ export async function fetchModels(baseUrl: string, apiKey: string, providerType?
     }));
   } catch (error) {
     console.error('Error fetching models:', error);
-    // For Gemini, fall back to presets on failure
-    if (providerType === 'gemini') {
-      return GEMINI_PRESET_MODELS.map(id => ({ id, name: id }));
-    }
     return [];
   }
 }
@@ -478,6 +484,12 @@ export async function* streamChat(
   // Route to Anthropic implementation if provider type is 'anthropic'
   if (provider.providerType === 'anthropic') {
     yield* streamChatAnthropic(provider, messages, context, config, retryConfig, previousApiMessages);
+    return;
+  }
+
+  // Route to native Gemini implementation if provider type is 'gemini'
+  if (provider.providerType === 'gemini') {
+    yield* streamChatGemini(provider, messages, context, config, retryConfig, previousApiMessages);
     return;
   }
 
@@ -906,6 +918,12 @@ export async function* streamChatSimple(
   // Route to Anthropic implementation if provider type is 'anthropic'
   if (provider.providerType === 'anthropic') {
     yield* streamChatAnthropicSimple(provider, messages, pageContent, retryConfig);
+    return;
+  }
+
+  // Route to native Gemini implementation if provider type is 'gemini'
+  if (provider.providerType === 'gemini') {
+    yield* streamChatGeminiSimple(provider, messages, pageContent, retryConfig);
     return;
   }
 

@@ -322,12 +322,12 @@ function handleProviderTypeChange(type: ProviderType) {
   formProviderType.value = type;
   // Auto-fill base URL and name based on provider type
   if (type === 'gemini') {
-    if (!formBaseUrl.value || formBaseUrl.value === 'https://api.anthropic.com') {
-      formBaseUrl.value = 'https://generativelanguage.googleapis.com/v1beta/openai/';
+    if (!formBaseUrl.value || formBaseUrl.value === 'https://api.anthropic.com' || formBaseUrl.value === 'https://generativelanguage.googleapis.com/v1beta/openai/') {
+      formBaseUrl.value = 'https://generativelanguage.googleapis.com';
     }
     if (!formName.value) formName.value = 'Google Gemini';
   } else if (type === 'anthropic') {
-    if (!formBaseUrl.value || formBaseUrl.value === 'https://generativelanguage.googleapis.com/v1beta/openai/') {
+    if (!formBaseUrl.value || formBaseUrl.value === 'https://generativelanguage.googleapis.com' || formBaseUrl.value === 'https://generativelanguage.googleapis.com/v1beta/openai/') {
       formBaseUrl.value = 'https://api.anthropic.com';
     }
     if (!formName.value) formName.value = 'Anthropic Claude';
