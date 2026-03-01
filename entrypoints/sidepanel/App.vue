@@ -24,9 +24,12 @@ import {
   getRawExtractSites,
   isRawExtractSite,
   isVisionSupportedForModel,
+  getPresetActions,
+  watchPresetActions,
   type AIProvider,
   type Language,
   type ThemeMode,
+  type PresetAction,
 } from '../../utils/storage';
 import {
   getSharePageContent,
@@ -93,6 +96,10 @@ const isImageDragActive = ref(false);
 const MAX_IMAGE_COUNT = 4;
 const MAX_IMAGE_SIZE_MB = 5;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
+// 预设操作
+const presetActions = ref<PresetAction[]>([]);
+const unwatchPresetActions = ref<(() => void) | null>(null);
 
 interface ActiveTabInfo {
   title: string;
@@ -864,6 +871,14 @@ onMounted(async () => {
     maxToolCalls.value = value;
   });
 
+  // 加载预设操作
+  presetActions.value = await getPresetActions();
+
+  // 监听预设操作变化
+  unwatchPresetActions.value = watchPresetActions((presets) => {
+    presetActions.value = presets;
+  });
+
   // 监听 skills 变更消息
   browser.runtime.onMessage.addListener(handleSkillsChanged);
 
@@ -982,6 +997,7 @@ onUnmounted(() => {
   unwatchSelectionQuoteEnabled.value?.();
   unwatchMaxPageContentLength.value?.();
   unwatchMaxToolCalls.value?.();
+  unwatchPresetActions.value?.();
   // 移除系统主题监听
   systemThemeMediaQuery.value?.removeEventListener('change', handleSystemThemeChange);
   // 移除 skills 变更监听
@@ -1280,6 +1296,16 @@ function handleSessionListScroll(e: Event) {
   if (el.scrollHeight - el.scrollTop - el.clientHeight < threshold) {
     loadMoreSessions();
   }
+}
+
+// Handle preset action click
+function handlePresetAction(preset: PresetAction) {
+  inputText.value = preset.content;
+  // Focus the input
+  nextTick(() => {
+    const textarea = document.querySelector('.input-box textarea') as HTMLTextAreaElement;
+    textarea?.focus();
+  });
 }
 
 // Send message
@@ -1918,6 +1944,22 @@ function rejectScript() {
 
     <!-- Input area -->
     <div class="input-area">
+      <!-- Preset Actions Bar -->
+      <div v-if="presetActions.length > 0" class="preset-actions-bar">
+        <button
+          v-for="preset in presetActions"
+          :key="preset.id"
+          class="preset-action-btn"
+          :title="preset.content"
+          @click="handlePresetAction(preset)"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+          {{ preset.name }}
+        </button>
+      </div>
+
       <div class="tab-share-row">
         <button
           class="current-tab-chip"

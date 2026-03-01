@@ -24,9 +24,15 @@ import {
   getThemeMode,
   watchThemeMode,
   applyTheme,
+  getPresetActions,
+  addPresetAction,
+  updatePresetAction,
+  deletePresetAction,
+  watchPresetActions,
   type AIProvider,
   type TrustedScript,
   type Language,
+  type PresetAction,
 } from '../../utils/storage';
 import {
   getAllSkills,
@@ -68,6 +74,15 @@ const maxToolCalls = ref(100);
 // 原始提取网站设置
 const rawExtractSites = ref<string[]>([]);
 const newRawExtractSite = ref('');
+
+// 预设操作设置
+const presetActions = ref<PresetAction[]>([]);
+const selectedPresetId = ref<string | null>(null);
+const presetFormName = ref('');
+const presetFormContent = ref('');
+const showPresetModal = ref(false);
+const isEditingPreset = ref(false);
+const unwatchPresetActions = ref<(() => void) | null>(null);
 
 // 主题监听
 const unwatchThemeMode = ref<(() => void) | null>(null);
@@ -160,7 +175,15 @@ onMounted(async () => {
   maxToolCalls.value = await getMaxToolCalls();
   // 加载原始提取网站设置
   rawExtractSites.value = await getRawExtractSites();
-  
+
+  // 加载预设操作
+  presetActions.value = await getPresetActions();
+
+  // 监听预设操作变化
+  unwatchPresetActions.value = watchPresetActions((presets) => {
+    presetActions.value = presets;
+  });
+
   // 加载并应用主题
   const themeMode = await getThemeMode();
   applyTheme(themeMode);
@@ -194,6 +217,7 @@ async function handleSystemThemeChange() {
 onUnmounted(() => {
   unwatchThemeMode.value?.();
   unwatchMcpServers.value?.();
+  unwatchPresetActions.value?.();
   systemThemeMediaQuery.value?.removeEventListener('change', handleSystemThemeChange);
   if (autoSaveDebounceTimer) clearTimeout(autoSaveDebounceTimer);
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
@@ -638,6 +662,54 @@ async function handleMcpToggle(id: string, enabled: boolean) {
   mcpServers.value = await getAllMcpServers();
   if (selectedMcpServerId.value === id) {
     mcpFormEnabled.value = enabled;
+  }
+}
+
+// ========== 预设操作管理函数 ==========
+
+function openAddPresetModal() {
+  isEditingPreset.value = false;
+  selectedPresetId.value = null;
+  presetFormName.value = '';
+  presetFormContent.value = '';
+  showPresetModal.value = true;
+}
+
+function openEditPresetModal(preset: PresetAction) {
+  isEditingPreset.value = true;
+  selectedPresetId.value = preset.id;
+  presetFormName.value = preset.name;
+  presetFormContent.value = preset.content;
+  showPresetModal.value = true;
+}
+
+function closePresetModal() {
+  showPresetModal.value = false;
+  selectedPresetId.value = null;
+  presetFormName.value = '';
+  presetFormContent.value = '';
+}
+
+async function savePreset() {
+  if (!presetFormName.value.trim() || !presetFormContent.value.trim()) {
+    alert(i18n('fillRequired'));
+    return;
+  }
+
+  if (isEditingPreset.value && selectedPresetId.value) {
+    await updatePresetAction(selectedPresetId.value, presetFormName.value, presetFormContent.value);
+  } else {
+    await addPresetAction(presetFormName.value, presetFormContent.value);
+  }
+
+  presetActions.value = await getPresetActions();
+  closePresetModal();
+}
+
+async function removePreset(id: string) {
+  if (confirm(i18n('confirmDeletePreset'))) {
+    await deletePresetAction(id);
+    presetActions.value = await getPresetActions();
   }
 }
 </script>
@@ -1214,6 +1286,54 @@ async function handleMcpToggle(id: string, enabled: boolean) {
                   <div v-else class="no-sites">{{ i18n('noSitesConfigured') }}</div>
                 </div>
               </div>
+
+              <div class="settings-divider"></div>
+
+              <div class="settings-item settings-item-vertical">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    <span>{{ i18n('presetActions') }}</span>
+                  </div>
+                  <p class="settings-item-desc">{{ i18n('presetActionsDesc') }}</p>
+                </div>
+                <div class="settings-item-content">
+                  <div class="preset-actions-list" v-if="presetActions.length > 0">
+                    <div
+                      v-for="preset in presetActions"
+                      :key="preset.id"
+                      class="preset-item"
+                    >
+                      <div class="preset-info">
+                        <span class="preset-name">{{ preset.name }}</span>
+                        <span class="preset-content-preview">{{ preset.content.length > 50 ? preset.content.slice(0, 50) + '...' : preset.content }}</span>
+                      </div>
+                      <div class="preset-actions">
+                        <button class="preset-edit-btn" @click="openEditPresetModal(preset)" :title="i18n('editPreset')">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                        </button>
+                        <button class="preset-delete-btn" @click="removePreset(preset.id)" :title="i18n('delete')">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="no-sites">{{ i18n('noPresets') }}</div>
+                  <button class="btn btn-primary btn-sm preset-add-btn" @click="openAddPresetModal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    {{ i18n('addPreset') }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1254,6 +1374,35 @@ async function handleMcpToggle(id: string, enabled: boolean) {
 ├── scripts/          # {{ i18n('optional') }} ({{ i18n('jsOnly') }})
 ├── references/       # {{ i18n('optional') }}
 └── assets/           # {{ i18n('optional') }}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preset Action Modal -->
+    <div v-if="showPresetModal" class="modal-overlay" @click.self="closePresetModal">
+      <div class="modal preset-modal">
+        <div class="modal-header">
+          <h3>{{ isEditingPreset ? i18n('editPreset') : i18n('addPreset') }}</h3>
+          <button class="close-btn" @click="closePresetModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>{{ i18n('presetName') }}</label>
+            <input v-model="presetFormName" :placeholder="i18n('presetNamePlaceholder')" />
+          </div>
+          <div class="form-group">
+            <label>{{ i18n('presetContent') }}</label>
+            <textarea
+              v-model="presetFormContent"
+              :placeholder="i18n('presetContentPlaceholder')"
+              rows="4"
+              class="preset-content-textarea"
+            ></textarea>
+          </div>
+          <div class="preset-modal-actions">
+            <button class="btn btn-outline" @click="closePresetModal">{{ i18n('cancel') }}</button>
+            <button class="btn btn-primary" @click="savePreset" :disabled="!presetFormName.trim() || !presetFormContent.trim()">{{ i18n('save') }}</button>
           </div>
         </div>
       </div>

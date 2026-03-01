@@ -1588,3 +1588,133 @@ body {
   flex-shrink: 0;
   margin-top: 2px;
 }
+
+
+/* ========== 预设操作样式 ========== */
+
+.preset-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.preset-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 200ms ease-out;
+}
+
+.preset-item:hover {
+  border-color: var(--border-hover);
+}
+
+.preset-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.preset-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.preset-content-preview {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.preset-edit-btn,
+.preset-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: all 200ms ease-out;
+}
+
+.preset-edit-btn:hover {
+  background: rgba(184, 134, 11, 0.1);
+  color: var(--accent);
+}
+
+.preset-delete-btn:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.preset-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.preset-modal {
+  max-width: 480px;
+}
+
+.preset-content-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  outline: none;
+  background: transparent;
+  color: var(--foreground);
+  transition: all 150ms ease-out;
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+.preset-content-textarea::placeholder {
+  color: rgba(107, 107, 107, 0.6);
+}
+
+.preset-content-textarea:hover {
+  border-color: var(--border-hover);
+}
+
+.preset-content-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.1);
+}
+
+.preset-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}

@@ -1966,3 +1966,45 @@ body {
   opacity: 0 !important;
   pointer-events: none;
 }
+
+
+/* ========== Preset Actions Bar ========== */
+.preset-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 12px;
+}
+
+.preset-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-family: var(--font-body);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 200ms ease-out;
+  white-space: nowrap;
+}
+
+.preset-action-btn:hover {
+  background: var(--card);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.preset-action-btn:active {
+  transform: translateY(0);
+}
+
+.preset-action-btn svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}

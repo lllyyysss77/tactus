@@ -203,6 +203,61 @@ const maxToolCallsStorage = storage.defineItem<number>('local:maxToolCalls', {
   fallback: 100,
 });
 
+// ==================== Preset Actions Settings ====================
+
+export interface PresetAction {
+  id: string;
+  name: string;
+  content: string;
+  createdAt: number;
+}
+
+const presetActionsStorage = storage.defineItem<PresetAction[]>('local:presetActions', {
+  fallback: [],
+});
+
+export async function getPresetActions(): Promise<PresetAction[]> {
+  return await presetActionsStorage.getValue();
+}
+
+export async function setPresetActions(presets: PresetAction[]): Promise<void> {
+  await presetActionsStorage.setValue(presets);
+}
+
+export async function addPresetAction(name: string, content: string): Promise<PresetAction> {
+  const presets = await presetActionsStorage.getValue();
+  const newPreset: PresetAction = {
+    id: crypto.randomUUID(),
+    name: name.trim(),
+    content: content.trim(),
+    createdAt: Date.now(),
+  };
+  presets.push(newPreset);
+  await presetActionsStorage.setValue(presets);
+  return newPreset;
+}
+
+export async function updatePresetAction(id: string, name: string, content: string): Promise<void> {
+  const presets = await presetActionsStorage.getValue();
+  const index = presets.findIndex(p => p.id === id);
+  if (index >= 0) {
+    presets[index].name = name.trim();
+    presets[index].content = content.trim();
+    await presetActionsStorage.setValue(presets);
+  }
+}
+
+export async function deletePresetAction(id: string): Promise<void> {
+  const presets = await presetActionsStorage.getValue();
+  await presetActionsStorage.setValue(presets.filter(p => p.id !== id));
+}
+
+export function watchPresetActions(callback: (presets: PresetAction[]) => void): () => void {
+  return presetActionsStorage.watch((newValue) => {
+    callback(newValue);
+  });
+}
+
 export async function getMaxToolCalls(): Promise<number> {
   const value = await maxToolCallsStorage.getValue();
   return normalizePositiveInt(value, 100);

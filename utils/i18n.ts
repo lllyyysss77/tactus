@@ -190,6 +190,19 @@ export interface Translations {
   copy: string;
   copied: string;
   send: string;
+
+  // 预设操作
+  presetActions: string;
+  presetActionsDesc: string;
+  presetName: string;
+  presetNamePlaceholder: string;
+  presetContent: string;
+  presetContentPlaceholder: string;
+  addPreset: string;
+  editPreset: string;
+  noPresets: string;
+  confirmDeletePreset: string;
+  presetActionSent: string;
 }
 
 // 英文翻译
@@ -378,6 +391,19 @@ const en: Translations = {
   copy: 'Copy',
   copied: 'Copied!',
   send: 'Send',
+
+  // 预设操作
+  presetActions: 'Quick Actions',
+  presetActionsDesc: 'Create quick actions (prompts/commands) for faster access in the chat panel',
+  presetName: 'Action Name',
+  presetNamePlaceholder: 'e.g. Translate, Summarize',
+  presetContent: 'Action Content',
+  presetContentPlaceholder: 'e.g. Please translate the following text to English:',
+  addPreset: 'Add Action',
+  editPreset: 'Edit Action',
+  noPresets: 'No quick actions configured',
+  confirmDeletePreset: 'Are you sure you want to delete this quick action?',
+  presetActionSent: 'Action sent',
 };
 
 // 简体中文翻译
@@ -566,6 +592,19 @@ const zhCN: Translations = {
   copy: '复制',
   copied: '已复制！',
   send: '发送',
+
+  // 预设操作
+  presetActions: '快捷操作',
+  presetActionsDesc: '创建常用的快捷操作（提示词/指令），方便在对话面板中快速使用',
+  presetName: '操作名称',
+  presetNamePlaceholder: '例如：翻译、总结',
+  presetContent: '操作内容',
+  presetContentPlaceholder: '例如：请将以下文字翻译成英文：',
+  addPreset: '添加操作',
+  editPreset: '编辑操作',
+  noPresets: '暂无快捷操作配置',
+  confirmDeletePreset: '确定删除这个快捷操作吗？',
+  presetActionSent: '已发送操作',
 };
 
 // 翻译映射
