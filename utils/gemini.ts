@@ -412,13 +412,15 @@ function createUserAbortError(originalError?: unknown): ApiError {
 
 function resolveGeminiBaseUrl(baseUrl: string): string {
   const url = baseUrl.trim();
-  if (!url) return 'https://generativelanguage.googleapis.com';
+  if (!url) return 'https://generativelanguage.googleapis.com/v1beta';
+  // Check if user explicitly wants to skip version prefix (trailing slash)
+  const skipVersion = url.endsWith('/');
   // Strip known OpenAI-compatible suffixes (from legacy config)
   let cleaned = url.replace(/\/v1beta\/openai\/?$/i, '');
   cleaned = cleaned.replace(/\/v1\/?$/i, '');
-  // Remove trailing slash
+  // Remove trailing slashes
   cleaned = cleaned.replace(/\/+$/, '');
-  return cleaned;
+  return skipVersion ? cleaned : cleaned + '/v1beta';
 }
 
 function getQuotedText(message: Pick<ChatMessage, 'content' | 'quote'>): string {
@@ -475,7 +477,7 @@ function sanitizeMessagesForVision(messages: ApiMessage[], allowImages: boolean)
 export async function fetchGeminiModels(baseUrl: string, apiKey: string): Promise<{ id: string; name?: string }[]> {
   const base = resolveGeminiBaseUrl(baseUrl);
   try {
-    const response = await fetch(`${base}/v1beta/models`, {
+    const response = await fetch(`${base}/models`, {
       headers: {
         'x-goog-api-key': apiKey,
       },
@@ -631,7 +633,7 @@ export async function* streamChatGemini(
     let lastError: ApiError | null = null;
 
     const model = provider.selectedModel;
-    const streamUrl = `${baseUrl}/v1beta/models/${model}:streamGenerateContent?alt=sse`;
+    const streamUrl = `${baseUrl}/models/${model}:streamGenerateContent?alt=sse`;
 
     for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
       ensureNotAborted();
@@ -995,7 +997,7 @@ export async function* streamChatGeminiSimple(
   }
 
   const model = provider.selectedModel;
-  const streamUrl = `${baseUrl}/v1beta/models/${model}:streamGenerateContent?alt=sse`;
+  const streamUrl = `${baseUrl}/models/${model}:streamGenerateContent?alt=sse`;
 
   // API call with retry
   let response: Response | null = null;

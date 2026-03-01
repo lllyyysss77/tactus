@@ -117,19 +117,27 @@ const formProviderType = ref<ProviderType>('openai');
 const isNewProvider = computed(() => selectedProviderId.value === 'new');
 
 const apiEndpointPreview = computed(() => {
-  const base = formBaseUrl.value || getDefaultBaseUrl();
+  const base = formBaseUrl.value;
+  // Only show preview when user has entered a base URL
   if (!base) return '';
+
+  const endsWithSlash = base.endsWith('/');
+  const cleanBase = base.replace(/\/+$/, '');
+
   if (formProviderType.value === 'gemini') {
-    const cleaned = base.replace(/\/+$/, '');
-    return cleaned + '/v1beta/models/{model}:streamGenerateContent';
+    return endsWithSlash
+      ? cleanBase + '/models/...'
+      : cleanBase + '/v1beta/models/...';
   }
   if (formProviderType.value === 'anthropic') {
-    const cleaned = base.endsWith('/') ? base.slice(0, -1) : base;
-    return cleaned + '/v1/messages';
+    return endsWithSlash
+      ? cleanBase + '/messages'
+      : cleanBase + '/v1/messages';
   }
-  return base.endsWith('/')
-    ? base + 'chat/completions'
-    : base + '/v1/chat/completions';
+  // OpenAI
+  return endsWithSlash
+    ? cleanBase + '/chat/completions'
+    : cleanBase + '/v1/chat/completions';
 });
 
 function getDefaultBaseUrl(): string {
@@ -872,7 +880,7 @@ async function removePreset(id: string) {
                 <div class="form-group">
                   <label>{{ i18n('baseUrl') }}</label>
                   <input v-model="formBaseUrl" :placeholder="baseUrlDynPlaceholder" />
-                  <p v-if="formProviderType === 'openai'" class="form-hint">{{ i18n('baseUrlHint') }}</p>
+                  <p class="form-hint">{{ i18n('baseUrlHint') }}</p>
                   <p v-if="apiEndpointPreview" class="api-endpoint-preview">API endpoint: {{ apiEndpointPreview }}</p>
                 </div>
                 <div class="form-group">

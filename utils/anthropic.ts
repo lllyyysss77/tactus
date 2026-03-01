@@ -310,9 +310,12 @@ function createUserAbortError(originalError?: unknown): ApiError {
 
 function resolveAnthropicBaseUrl(baseUrl: string): string {
   const url = baseUrl.trim();
-  if (!url) return 'https://api.anthropic.com';
-  // Remove trailing slash
-  return url.endsWith('/') ? url.slice(0, -1) : url;
+  if (!url) return 'https://api.anthropic.com/v1';
+  // Trailing slash = skip version prefix
+  if (url.endsWith('/')) {
+    return url.replace(/\/+$/, '');
+  }
+  return url + '/v1';
 }
 
 function getQuotedText(message: Pick<ChatMessage, 'content' | 'quote'>): string {
@@ -491,7 +494,7 @@ export async function* streamChatAnthropic(
       }
 
       try {
-        response = await fetch(`${baseUrl}/v1/messages`, {
+        response = await fetch(`${baseUrl}/messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -837,7 +840,7 @@ export async function* streamChatAnthropicSimple(
     const timeoutId = setTimeout(() => controller.abort(), retryConfig.timeout);
 
     try {
-      response = await fetch(`${baseUrl}/v1/messages`, {
+      response = await fetch(`${baseUrl}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
