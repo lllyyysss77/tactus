@@ -779,7 +779,7 @@ async function removePreset(id: string) {
 <template>
   <div class="options-page">
     <nav class="nav-sidebar">
-      <div class="nav-header"><h1>Tactus</h1></div>
+      <div class="nav-header"><h1><a href="https://tactus.cc.cd/" target="_blank" rel="noopener noreferrer" class="brand-link">Tactus</a></h1></div>
       <div class="nav-menu">
         <div class="nav-item" :class="{ active: activeNav === 'models' }" @click="activeNav = 'models'">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

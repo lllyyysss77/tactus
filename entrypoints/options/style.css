@@ -105,6 +105,15 @@ body {
   color: var(--foreground);
 }
 
+.nav-header h1 .brand-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.nav-header h1 .brand-link:hover {
+  opacity: 0.85;
+}
+
 .nav-menu {
   padding: 12px;
 }

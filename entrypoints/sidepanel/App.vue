@@ -55,9 +55,16 @@ import { mcpManager, type McpTool } from '../../utils/mcp';
 import { getEnabledMcpServers, watchMcpServers } from '../../utils/mcpStorage';
 
 // Configure marked for safe rendering
+const renderer = new marked.Renderer();
+const originalLinkRenderer = renderer.link.bind(renderer);
+renderer.link = function (token) {
+  const html = originalLinkRenderer(token);
+  return html.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ');
+};
 marked.setOptions({
   breaks: true,
   gfm: true,
+  renderer,
 });
 
 // Render markdown to HTML
@@ -1784,7 +1791,7 @@ function rejectScript() {
   <div class="container">
     <!-- Header -->
     <div class="header">
-      <h1>Tactus</h1>
+      <h1><a href="https://tactus.cc.cd/" target="_blank" rel="noopener noreferrer" class="brand-link">Tactus</a></h1>
       <div class="header-actions">
         <!-- Theme Selector -->
         <div class="theme-selector-wrapper">
