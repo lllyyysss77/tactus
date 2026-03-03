@@ -27,11 +27,13 @@ Tactus is the first product to implement the Agent Skills specification in a bro
 
 ### 🤖 Intelligent Conversation
 
-- **OpenAI Compatible API** - Supports any OpenAI-compatible API provider (including domestic model services)
+- **Multi-Provider Support** - Native support for Anthropic (Claude), Gemini (Google), and any OpenAI-compatible API provider
 - **Multi-Model Switching** - Configure multiple providers and switch models anytime
 - **Streaming Response** - Real-time AI replies with chain-of-thought display
 - **ReAct Paradigm** - Built-in complete tool calling loop, AI autonomously decides when to use tools
 - **Stop Generation** - Interrupt ongoing AI generation or tool calls at any time
+- **Tab Lock** - Automatically locks the tab during AI responses with a glowing animation to prevent accidental navigation
+- **Preset Quick Actions** - Quick action buttons for common prompts in the chat panel
 
 ### 🖼️ Image Vision Support
 
@@ -86,6 +88,9 @@ https://github.com/user-attachments/assets/c7737e7e-dd2e-4888-a030-db40b9731f1d
 - **Web Content Char Limit** - Configure maximum characters for extracted page content to control token usage
 - **Tool Call Limit** - Configure maximum tool calls per conversation to prevent infinite loops
 - **Smart Base URL Handling** - Auto-complete `/v1/chat/completions` path to simplify API configuration
+- **API Endpoint Preview** - Preview the full API endpoint URL below the Base URL input
+- **Auto-Save Config** - Model provider and MCP server configurations are automatically saved with debounce
+- **Open Links in New Tabs** - Links in AI responses open in new tabs to preserve your conversation
 
 ## 🚀 Quick Start
 
@@ -185,7 +190,7 @@ When user needs to perform a task, follow these steps:
 
 - **Framework**: [WXT](https://wxt.dev/) - Modern browser extension development framework
 - **Frontend**: Vue 3 + TypeScript
-- **AI Integration**: OpenAI SDK (compatible with any OpenAI API)
+- **AI Integration**: Native Anthropic (Claude) API, Native Gemini (Google) API, OpenAI SDK (compatible with any OpenAI API)
 - **MCP Support**: @modelcontextprotocol/sdk - Model Context Protocol client
 - **Content Extraction**: @mozilla/readability + turndown
 - **Storage**: IndexedDB (idb) + WXT Storage
@@ -216,8 +221,10 @@ tactus/
 │   └── options/           # Settings page
 ├── components/            # Vue components
 ├── utils/
+│   ├── anthropic.ts       # Anthropic (Claude) API integration
 │   ├── api.ts             # API calls & tool execution
 │   ├── db.ts              # IndexedDB operations
+│   ├── gemini.ts          # Gemini (Google) API integration
 │   ├── storage.ts         # Settings & storage management
 │   ├── i18n.ts            # Internationalization
 │   ├── mcp.ts             # MCP Client management

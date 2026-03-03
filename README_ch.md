@@ -27,11 +27,13 @@ Tactus 是首个在浏览器扩展中实现 Agent Skills 规范的产品：
 
 ### 🤖 智能对话
 
-- **OpenAI 兼容 API** - 支持任何 OpenAI 兼容的 API 服务商（包括国内各大模型服务）
+- **多服务商原生支持** - 原生支持 Anthropic (Claude)、Gemini (Google) 及任何 OpenAI 兼容 API 服务商
 - **多模型切换** - 配置多个服务商，随时切换模型
 - **流式响应** - 实时显示 AI 回复，支持思维链展示
 - **ReAct 范式** - 内置完整工具调用循环，AI 自主决策何时使用工具
 - **终止生成** - 随时中断正在进行的 AI 生成或工具调用
+- **标签页锁定** - AI 回复时自动锁定标签页并显示发光动画，防止误切页面
+- **预设快捷操作** - 对话面板中的常用提示词快捷按钮
 
 ### 🖼️ 图像视觉支持
 
@@ -86,6 +88,9 @@ https://github.com/user-attachments/assets/c7737e7e-dd2e-4888-a030-db40b9731f1d
 - **网页内容字数限制** - 可配置提取页面内容的最大字数，控制 token 消耗
 - **工具调用次数限制** - 可配置 Agent 单次对话中工具调用的最大次数，防止无限循环
 - **Base URL 智能处理** - 自动补全 `/v1/chat/completions` 路径，简化 API 配置
+- **API 端点预览** - 在 Base URL 输入框下方预览完整的 API 端点地址
+- **配置自动保存** - 模型服务商配置和 MCP Server 配置支持自动保存（防抖）
+- **链接新标签页打开** - AI 回复中的链接在新标签页打开，保留当前对话
 
 ## 🚀 快速开始
 
@@ -185,7 +190,7 @@ description: 这是一个示例技能
 
 - **框架**: [WXT](https://wxt.dev/) - 现代浏览器扩展开发框架
 - **前端**: Vue 3 + TypeScript
-- **AI 集成**: OpenAI SDK（兼容任意 OpenAI API）
+- **AI 集成**: 原生 Anthropic (Claude) API、原生 Gemini (Google) API、OpenAI SDK（兼容任意 OpenAI API）
 - **MCP 支持**: @modelcontextprotocol/sdk - Model Context Protocol 客户端
 - **内容提取**: @mozilla/readability + turndown
 - **存储**: IndexedDB (idb) + WXT Storage
@@ -216,8 +221,10 @@ tactus/
 │   └── options/           # 设置页面
 ├── components/            # Vue 组件
 ├── utils/
+│   ├── anthropic.ts       # Anthropic (Claude) API 集成
 │   ├── api.ts             # API 调用与工具执行
 │   ├── db.ts              # IndexedDB 操作
+│   ├── gemini.ts          # Gemini (Google) API 集成
 │   ├── storage.ts         # 设置与存储管理
 │   ├── i18n.ts            # 国际化
 │   ├── mcp.ts             # MCP Client 管理
