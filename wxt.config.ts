@@ -4,6 +4,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
   manifest: ({ browser }) => {
     const isFirefox = browser === 'firefox';
+    const firefoxExtensionId = process.env.FIREFOX_EXTENSION_ID || 'tactus@local.dev';
 
     return {
       name: 'Tactus',
@@ -47,11 +48,11 @@ export default defineConfig({
           matches: ['<all_urls>'],
         },
       ],
-      ...(isFirefox && process.env.FIREFOX_EXTENSION_ID
+      ...(isFirefox
         ? {
             browser_specific_settings: {
               gecko: {
-                id: process.env.FIREFOX_EXTENSION_ID,
+                id: firefoxExtensionId,
               },
             },
           }
