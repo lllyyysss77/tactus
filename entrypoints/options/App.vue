@@ -61,6 +61,7 @@ const activeNav = ref<'models' | 'skills' | 'mcp' | 'settings'>('models');
 const currentLanguage = ref<Language>('en');
 
 // 悬浮球设置
+const isFirefox = import.meta.env.FIREFOX;
 const floatingBallEnabled = ref(true);
 
 // 划词引用设置
@@ -1221,9 +1222,9 @@ async function removePreset(id: string) {
                 </div>
               </div>
               
-              <div class="settings-divider"></div>
-              
-              <div class="settings-item">
+              <div class="settings-divider" v-if="!isFirefox"></div>
+
+              <div class="settings-item" v-if="!isFirefox">
                 <div class="settings-item-info">
                   <div class="settings-item-label">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

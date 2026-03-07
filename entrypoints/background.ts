@@ -157,10 +157,17 @@ export default defineBackground(() => {
     }
   });
 
-  // Open side panel when extension icon is clicked
+  // Open/toggle side panel when extension icon is clicked
   const actionApi = (browser as any).action ?? (browser as any).browserAction;
   actionApi?.onClicked?.addListener(async (tab: any) => {
     try {
+      // Firefox: use sidebarAction.toggle() for open/close behavior
+      const sidebarActionApi = (browser as any).sidebarAction;
+      if (sidebarActionApi?.toggle) {
+        await sidebarActionApi.toggle();
+        return;
+      }
+      // Chrome: fallback to openSidePanel (though setPanelBehavior handles this)
       await openSidePanel(tab?.id);
     } catch (error) {
       console.error('Failed to open side panel:', error);
