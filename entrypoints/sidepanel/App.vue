@@ -1103,6 +1103,26 @@ const scrollToBottom = () => {
   });
 };
 
+async function executeTabScript<T>(tabId: number, func: () => T): Promise<T | undefined> {
+  const scriptingApi = (browser as any).scripting;
+  if (scriptingApi?.executeScript) {
+    const results = await scriptingApi.executeScript({
+      target: { tabId },
+      func,
+    });
+    return results?.[0]?.result as T | undefined;
+  }
+
+  const tabsApi = (browser as any).tabs;
+  if (tabsApi?.executeScript) {
+    const code = `(${func.toString()})();`;
+    const results = await tabsApi.executeScript(tabId, { code });
+    return results?.[0] as T | undefined;
+  }
+
+  throw new Error('当前浏览器不支持脚本执行 API');
+}
+
 // 使用 Readability + Turndown 提取清洗后的页面内容
 async function extractCleanPageContent(): Promise<string> {
   try {
@@ -1130,19 +1150,14 @@ async function extractCleanPageContent(): Promise<string> {
       return '无法获取当前页面信息';
     }
 
-    const results = await browser.scripting.executeScript({
-      target: { tabId: targetTabId },
-      func: () => {
-        // 返回完整的 HTML 和 URL
-        return {
-          html: document.documentElement.outerHTML,
-          url: window.location.href,
-          title: document.title,
-        };
-      },
+    const pageData = await executeTabScript(targetTabId, () => {
+      // 返回完整的 HTML 和 URL
+      return {
+        html: document.documentElement.outerHTML,
+        url: window.location.href,
+        title: document.title,
+      };
     });
-
-    const pageData = results[0]?.result;
     if (!pageData) {
       return '无法获取页面内容';
     }
