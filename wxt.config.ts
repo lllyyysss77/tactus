@@ -20,7 +20,7 @@ export default defineConfig({
 
     return {
       name: 'Tactus',
-      description: 'AI Assistant with OpenAI-compatible API support',
+      description: 'The first browser AI Agent extension with Agent Skills, multi-provider AI, and MCP support',
       version: '1.2.0',
       ...(isFirefox ? {} : { minimum_chrome_version: '120' }),
       permissions: [
