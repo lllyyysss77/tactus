@@ -54,6 +54,13 @@ import {
   type McpAuthType,
 } from '../../utils/mcpStorage';
 import { mcpManager } from '../../utils/mcp';
+import {
+  exportAllData,
+  downloadExportData,
+  readImportFile,
+  importAllData,
+  type ImportResult,
+} from '../../utils/dataTransfer';
 
 const activeNav = ref<'models' | 'skills' | 'mcp' | 'settings'>('models');
 
@@ -85,6 +92,12 @@ const presetFormContent = ref('');
 const showPresetModal = ref(false);
 const isEditingPreset = ref(false);
 const unwatchPresetActions = ref<(() => void) | null>(null);
+
+// 数据导入/导出
+const isExporting = ref(false);
+const isImportingData = ref(false);
+const showImportConfirmModal = ref(false);
+const pendingImportFile = ref<File | null>(null);
 
 // 主题监听
 const unwatchThemeMode = ref<(() => void) | null>(null);
@@ -199,7 +212,8 @@ let skipMcpAutoSave = false;
 const isNewMcpServer = computed(() => selectedMcpServerId.value === 'new');
 const selectedMcpServer = computed(() => mcpServers.value.find(s => s.id === selectedMcpServerId.value) || null);
 
-onMounted(async () => {
+// 加载所有数据（用于初始化和导入后刷新）
+async function loadAllData() {
   providers.value = await getAllProviders();
   const active = await getActiveProvider();
   activeProviderId.value = active?.id || null;
@@ -207,43 +221,35 @@ onMounted(async () => {
     selectProvider(activeProviderId.value || providers.value[0].id);
   }
   await loadSkills();
-  // 加载语言设置
   currentLanguage.value = await getLanguage();
-  // 加载悬浮球设置
   floatingBallEnabled.value = await getFloatingBallEnabled();
-  // 加载划词引用设置
   selectionQuoteEnabled.value = await getSelectionQuoteEnabled();
-  // 加载网页字数上限
   maxPageContentLength.value = await getMaxPageContentLength();
-  // 加载工具调用上限
   maxToolCalls.value = await getMaxToolCalls();
-  // 加载原始提取网站设置
   rawExtractSites.value = await getRawExtractSites();
-
-  // 加载预设操作
   presetActions.value = await getPresetActions();
+  mcpServers.value = await getAllMcpServers();
+  const themeMode = await getThemeMode();
+  applyTheme(themeMode);
+}
+
+onMounted(async () => {
+  await loadAllData();
 
   // 监听预设操作变化
   unwatchPresetActions.value = watchPresetActions((presets) => {
     presetActions.value = presets;
   });
 
-  // 加载并应用主题
-  const themeMode = await getThemeMode();
-  applyTheme(themeMode);
-  
   // 监听系统主题变化
   systemThemeMediaQuery.value = window.matchMedia('(prefers-color-scheme: dark)');
   systemThemeMediaQuery.value.addEventListener('change', handleSystemThemeChange);
-  
+
   // 监听主题变化（跨页面同步）
   unwatchThemeMode.value = watchThemeMode((newMode) => {
     applyTheme(newMode);
   });
-  
-  // 加载 MCP Server 配置
-  mcpServers.value = await getAllMcpServers();
-  
+
   // 监听 MCP Server 配置变化
   unwatchMcpServers.value = watchMcpServers((servers) => {
     mcpServers.value = servers;
@@ -774,6 +780,73 @@ async function removePreset(id: string) {
     await deletePresetAction(id);
     presetActions.value = await getPresetActions();
   }
+}
+
+// 数据导出
+async function handleExport() {
+  isExporting.value = true;
+  try {
+    const data = await exportAllData();
+    downloadExportData(data);
+    showToast(i18n('exportSuccess'));
+  } catch (e) {
+    showToast(i18n('exportFailed'));
+  } finally {
+    isExporting.value = false;
+  }
+}
+
+// 选择导入文件 -> 弹出确认
+function handleImportFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  pendingImportFile.value = file;
+  showImportConfirmModal.value = true;
+  // 重置 input，允许重复选择同一文件
+  input.value = '';
+}
+
+// 确认导入
+async function confirmImport() {
+  if (!pendingImportFile.value) return;
+  showImportConfirmModal.value = false;
+  isImportingData.value = true;
+  try {
+    const raw = await readImportFile(pendingImportFile.value);
+    const result = await importAllData(raw);
+    if (result.success && result.stats) {
+      showToast(i18n('importStats', {
+        providers: result.stats.providers,
+        chatSessions: result.stats.chatSessions,
+        skills: result.stats.skills,
+        mcpServers: result.stats.mcpServers,
+      }));
+      // 刷新页面数据
+      await loadAllData();
+    } else {
+      const errorKey = result.error === 'INVALID_JSON' ? 'importDataInvalidJson'
+        : result.error === 'INVALID_FORMAT' ? 'importDataInvalidFormat'
+        : result.error === 'FILE_READ_ERROR' ? 'importDataFileError'
+        : 'importDataFailed';
+      showToast(i18n(errorKey));
+    }
+  } catch {
+    showToast(i18n('importDataFailed'));
+  } finally {
+    isImportingData.value = false;
+    pendingImportFile.value = null;
+  }
+}
+
+function cancelImport() {
+  showImportConfirmModal.value = false;
+  pendingImportFile.value = null;
+}
+
+function showToast(message: string) {
+  autoSaveMessage.value = message;
+  setTimeout(() => { autoSaveMessage.value = ''; }, 3000);
 }
 </script>
 
@@ -1426,6 +1499,55 @@ async function removePreset(id: string) {
                   </button>
                 </div>
               </div>
+
+              <div class="settings-divider"></div>
+
+              <div class="settings-item settings-item-vertical">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span>{{ i18n('dataTransfer') }}</span>
+                  </div>
+                  <p class="settings-item-desc">{{ i18n('dataTransferDesc') }}</p>
+                </div>
+                <div class="settings-item-content">
+                  <div class="data-transfer-actions">
+                    <div class="data-transfer-card">
+                      <div class="data-transfer-card-info">
+                        <span class="data-transfer-card-title">{{ i18n('exportData') }}</span>
+                        <span class="data-transfer-card-desc">{{ i18n('exportDataDesc') }}</span>
+                      </div>
+                      <button class="btn btn-primary btn-sm" @click="handleExport" :disabled="isExporting">
+                        <svg v-if="!isExporting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        {{ isExporting ? i18n('exporting') : i18n('exportData') }}
+                      </button>
+                    </div>
+                    <div class="data-transfer-card">
+                      <div class="data-transfer-card-info">
+                        <span class="data-transfer-card-title">{{ i18n('importData') }}</span>
+                        <span class="data-transfer-card-desc">{{ i18n('importDataDesc') }}</span>
+                      </div>
+                      <input type="file" id="data-import-input" accept=".json" @change="handleImportFileSelect" class="hidden-input" />
+                      <label for="data-import-input" class="btn btn-outline btn-sm" :class="{ disabled: isImportingData }">
+                        <svg v-if="!isImportingData" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                          <polyline points="17 8 12 3 7 8"/>
+                          <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        {{ isImportingData ? i18n('importingData') : i18n('importDataBtn') }}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1495,6 +1617,30 @@ async function removePreset(id: string) {
           <div class="preset-modal-actions">
             <button class="btn btn-outline" @click="closePresetModal">{{ i18n('cancel') }}</button>
             <button class="btn btn-primary" @click="savePreset" :disabled="!presetFormName.trim() || !presetFormContent.trim()">{{ i18n('save') }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Import Confirm Modal -->
+    <div v-if="showImportConfirmModal" class="modal-overlay" @click.self="cancelImport">
+      <div class="modal confirm-modal">
+        <div class="modal-header">
+          <h3>{{ i18n('confirmImportData') }}</h3>
+          <button class="close-btn" @click="cancelImport">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="confirm-warning">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <p>{{ i18n('confirmImportDataDesc') }}</p>
+          </div>
+          <div class="confirm-actions">
+            <button class="btn btn-outline" @click="cancelImport">{{ i18n('cancel') }}</button>
+            <button class="btn btn-danger" @click="confirmImport">{{ i18n('confirm') }}</button>
           </div>
         </div>
       </div>

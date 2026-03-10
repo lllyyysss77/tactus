@@ -209,6 +209,27 @@ export interface Translations {
   noPresets: string;
   confirmDeletePreset: string;
   presetActionSent: string;
+
+  // 数据导入/导出
+  dataTransfer: string;
+  dataTransferDesc: string;
+  exportData: string;
+  exportDataDesc: string;
+  exporting: string;
+  exportSuccess: string;
+  exportFailed: string;
+  importData: string;
+  importDataDesc: string;
+  importDataBtn: string;
+  importingData: string;
+  importDataSuccess: string;
+  importDataFailed: string;
+  importDataInvalidJson: string;
+  importDataInvalidFormat: string;
+  importDataFileError: string;
+  confirmImportData: string;
+  confirmImportDataDesc: string;
+  importStats: string;
 }
 
 // 英文翻译
@@ -416,6 +437,27 @@ const en: Translations = {
   noPresets: 'No quick actions configured',
   confirmDeletePreset: 'Are you sure you want to delete this quick action?',
   presetActionSent: 'Action sent',
+
+  // 数据导入/导出
+  dataTransfer: 'Data Management',
+  dataTransferDesc: 'Export or import all your data including providers, chat history, skills, and settings',
+  exportData: 'Export Data',
+  exportDataDesc: 'Download a backup of all your data as a JSON file',
+  exporting: 'Exporting...',
+  exportSuccess: 'Data exported successfully',
+  exportFailed: 'Export failed',
+  importData: 'Import Data',
+  importDataDesc: 'Restore data from a previously exported backup file. This will overwrite existing data',
+  importDataBtn: 'Select Backup File',
+  importingData: 'Importing...',
+  importDataSuccess: 'Data imported successfully',
+  importDataFailed: 'Import failed',
+  importDataInvalidJson: 'Invalid file: not a valid JSON file',
+  importDataInvalidFormat: 'Invalid file: not a valid Tactus backup file',
+  importDataFileError: 'Failed to read file',
+  confirmImportData: 'Confirm Import',
+  confirmImportDataDesc: 'This will overwrite all your current data (providers, chat history, skills, settings, etc.). This action cannot be undone. Are you sure you want to continue?',
+  importStats: 'Imported: {providers} providers, {chatSessions} chats, {skills} skills, {mcpServers} MCP servers',
 };
 
 // 简体中文翻译
@@ -623,6 +665,27 @@ const zhCN: Translations = {
   noPresets: '暂无快捷操作配置',
   confirmDeletePreset: '确定删除这个快捷操作吗？',
   presetActionSent: '已发送操作',
+
+  // 数据导入/导出
+  dataTransfer: '数据管理',
+  dataTransferDesc: '导出或导入所有数据，包括服务商配置、聊天记录、Skills 和设置',
+  exportData: '导出数据',
+  exportDataDesc: '将所有数据下载为 JSON 备份文件',
+  exporting: '导出中...',
+  exportSuccess: '数据导出成功',
+  exportFailed: '导出失败',
+  importData: '导入数据',
+  importDataDesc: '从之前导出的备份文件恢复数据，将覆盖现有数据',
+  importDataBtn: '选择备份文件',
+  importingData: '导入中...',
+  importDataSuccess: '数据导入成功',
+  importDataFailed: '导入失败',
+  importDataInvalidJson: '无效文件：不是有效的 JSON 文件',
+  importDataInvalidFormat: '无效文件：不是有效的 Tactus 备份文件',
+  importDataFileError: '文件读取失败',
+  confirmImportData: '确认导入',
+  confirmImportDataDesc: '此操作将覆盖所有现有数据（服务商配置、聊天记录、Skills、设置等），且无法撤销。确定要继续吗？',
+  importStats: '已导入：{providers} 个服务商、{chatSessions} 个对话、{skills} 个 Skills、{mcpServers} 个 MCP 服务器',
 };
 
 // 翻译映射
