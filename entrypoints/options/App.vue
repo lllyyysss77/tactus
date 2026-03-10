@@ -824,6 +824,10 @@ async function confirmImport() {
       }));
       // 刷新页面数据
       await loadAllData();
+      // 通知其他页面（如 sidepanel）skills 已更新
+      if (result.stats.skills > 0) {
+        browser.runtime.sendMessage({ type: 'SKILLS_CHANGED', action: 'added' });
+      }
     } else {
       const errorKey = result.error === 'INVALID_JSON' ? 'importDataInvalidJson'
         : result.error === 'INVALID_FORMAT' ? 'importDataInvalidFormat'
