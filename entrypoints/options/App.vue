@@ -822,6 +822,8 @@ async function confirmImport() {
         skills: result.stats.skills,
         mcpServers: result.stats.mcpServers,
       }));
+      // 通知其他页面 skills 已更新，确保侧边栏立即刷新 skill 提示词和工具列表
+      browser.runtime.sendMessage({ type: 'SKILLS_CHANGED', action: 'imported' });
       // 刷新页面数据
       await loadAllData();
     } else {
