@@ -265,6 +265,9 @@ Apache-2.0 License
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Castor6/tactus&type=Date)](https://star-history.com/#Castor6/tactus&Date)
 
+## Friendship Link
+Thanks for the support and feedback from the friends at [LINUX DO](https://linux.do/). Let's make tactus better and better together!
+
 ---
 
 **Tactus** - granting AI the sense of touch to navigate the web 🚀
