@@ -265,6 +265,9 @@ Apache-2.0 License
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Castor6/tactus&type=Date)](https://star-history.com/#Castor6/tactus&Date)
 
+## 友情链接
+感谢 [LINUX DO](https://linux.do/) 佬友们的支持与反馈，让我们一起在 tactus 玩起来越来越好！
+
 ---
 
 **Tactus** - 赋予 AI 触觉，代你行走网络 🚀
