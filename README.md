@@ -4,6 +4,11 @@ English | [简体中文](README_ch.md)
 
 **The First Browser AI Agent Extension with Agent Skills Support**
 
+[![Chrome Version][chrome-version-shield]][chrome-store-link]
+[![Chrome Users][chrome-users-shield]][chrome-store-link]
+[![Firefox Version][firefox-version-shield]][firefox-store-link]
+[![Firefox Users][firefox-users-shield]][firefox-store-link]
+
 Tactus is an innovative browser extension that brings the [Agent Skills](https://agentskills.io/specification) specification to the browser environment, enabling AI Agent to perform complex tasks through an extensible skill system.
 
 Triggering skills can achieve prompt injection for specific scenarios, and common workflows can be encapsulated in scripts for execution, replacing repetitive automated operations of AI Agents. This approach is both fast and token-efficient.
@@ -94,10 +99,16 @@ https://github.com/user-attachments/assets/c7737e7e-dd2e-4888-a030-db40b9731f1d
 
 ## 🚀 Quick Start
 
-### 1. Download
-Download the latest `tactus.zip` file from the official GitHub [Releases page](https://github.com/Castor6/tactus/releases).
+### Download
 
-### 2. Install
+| Browser | Download |
+| ------- | -------- |
+| Chrome | [Chrome Web Store][chrome-store-link] |
+| Firefox | [Firefox Add-ons][firefox-store-link] |
+
+Or download from [GitHub Releases](https://github.com/Castor6/tactus/releases) for manual installation.
+
+### Install
 - Chrome / Edge (recommended)
   - Extract `tactus.zip` to a permanent directory
   - Open `chrome://extensions/` in Chrome
@@ -271,4 +282,12 @@ Thanks for the support and feedback from the friends at [LINUX DO](https://linux
 ---
 
 **Tactus** - granting AI the sense of touch to navigate the web 🚀
+
+<!-- LINK GROUP -->
+[chrome-store-link]: https://chromewebstore.google.com/detail/tactus/nmhndbemnmmigjooiafblchoegecmkhh
+[chrome-version-shield]: https://img.shields.io/chrome-web-store/v/nmhndbemnmmigjooiafblchoegecmkhh?style=flat-square&label=Chrome&labelColor=black&color=blue
+[chrome-users-shield]: https://img.shields.io/chrome-web-store/users/nmhndbemnmmigjooiafblchoegecmkhh?style=flat-square&label=Users&labelColor=black&color=blue
+[firefox-store-link]: https://addons.mozilla.org/firefox/addon/tactus
+[firefox-version-shield]: https://img.shields.io/amo/v/tactus?style=flat-square&label=Firefox&labelColor=black&color=orange
+[firefox-users-shield]: https://img.shields.io/amo/users/tactus?style=flat-square&label=Users&labelColor=black&color=orange
 

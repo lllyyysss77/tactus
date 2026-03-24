@@ -4,6 +4,11 @@
 
 **首个支持 Agent Skills 的浏览器 AI Agent 扩展**
 
+[![Chrome Version][chrome-version-shield]][chrome-store-link]
+[![Chrome Users][chrome-users-shield]][chrome-store-link]
+[![Firefox Version][firefox-version-shield]][firefox-store-link]
+[![Firefox Users][firefox-users-shield]][firefox-store-link]
+
 Tactus 是一款创新的浏览器扩展，将 [Agent Skills](https://agentskills.io/specification) 规范引入浏览器环境，让 AI Agent 能够通过可扩展的技能系统执行复杂任务。
 
 触发 skills 可实现特定场景的提示词注入，常用工作流可封装在脚本中执行，代替 AI Agent 重复的自动化操作，既快速又省token。
@@ -94,10 +99,16 @@ https://github.com/user-attachments/assets/c7737e7e-dd2e-4888-a030-db40b9731f1d
 
 ## 🚀 快速开始
 
-### 1. 下载
-从官方 Github [发布页面](https://github.com/Castor6/tactus/releases) 下载最新的 `tactus.zip` 文件。
+### 下载安装
 
-### 2. 安装
+| 浏览器 | 下载 |
+| ------ | ---- |
+| Chrome | [Chrome 网上应用店][chrome-store-link] |
+| Firefox | [Firefox 附加组件][firefox-store-link] |
+
+或从 [GitHub Releases](https://github.com/Castor6/tactus/releases) 下载手动安装。
+
+### 手动安装
 - Chrome / Edge（推荐）
   - 在固定目录解压 `tactus.zip`
   - 在 Chrome 中打开 `chrome://extensions/`
@@ -271,4 +282,12 @@ Apache-2.0 License
 ---
 
 **Tactus** - 赋予 AI 触觉，代你行走网络 🚀
+
+<!-- LINK GROUP -->
+[chrome-store-link]: https://chromewebstore.google.com/detail/tactus/nmhndbemnmmigjooiafblchoegecmkhh
+[chrome-version-shield]: https://img.shields.io/chrome-web-store/v/nmhndbemnmmigjooiafblchoegecmkhh?style=flat-square&label=Chrome&labelColor=black&color=blue
+[chrome-users-shield]: https://img.shields.io/chrome-web-store/users/nmhndbemnmmigjooiafblchoegecmkhh?style=flat-square&label=Users&labelColor=black&color=blue
+[firefox-store-link]: https://addons.mozilla.org/firefox/addon/tactus
+[firefox-version-shield]: https://img.shields.io/amo/v/tactus?style=flat-square&label=Firefox&labelColor=black&color=orange
+[firefox-users-shield]: https://img.shields.io/amo/users/tactus?style=flat-square&label=Users&labelColor=black&color=orange
 
