@@ -21,6 +21,7 @@
     "@wxt-dev/storage": "^1.2.6",
     "idb": "^8.0.3",
     "jszip": "^3.10.1",
+    "katex": "^0.16.40",
     "marked": "^17.0.1",
     "oauth-callback": "^2.2.0",
     "openai": "^6.16.0",

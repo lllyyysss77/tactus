@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, shallowRef, triggerRef, onMounted, onUnmounted, nextTick, watch, computed } from 'vue';
-import { marked } from 'marked';
+import katex from 'katex';
+import { Marked } from 'marked';
 import {
   getAllProviders,
   saveProvider as saveProviderToDB,
@@ -32,8 +33,10 @@ import {
   type PresetAction,
 } from '../../utils/storage';
 import {
-  getSharePageContent,
+  getSharePageContentPreferenceInitialized,
+  getStoredSharePageContent,
   setSharePageContent,
+  setSharePageContentPreferenceInitialized,
   setCurrentSessionId,
   getAllSessions,
   getSessionsPaginated,
@@ -54,23 +57,13 @@ import { t, type Translations } from '../../utils/i18n';
 import { mcpManager, type McpTool } from '../../utils/mcp';
 import { getEnabledMcpServers, watchMcpServers } from '../../utils/mcpStorage';
 
-// Configure marked for safe rendering
-const renderer = new marked.Renderer();
-const originalLinkRenderer = renderer.link.bind(renderer);
-renderer.link = function (token) {
-  const html = originalLinkRenderer(token);
-  return html.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ');
-};
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  renderer,
-});
-
-// Render markdown to HTML
-function renderMarkdown(content: string): string {
-  if (!content) return '';
-  return marked.parse(content) as string;
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // Language state
@@ -84,6 +77,152 @@ const showThemeSelector = ref(false);
 const i18n = (key: keyof Translations, params?: Record<string, string | number>) => {
   return t(currentLanguage.value, key, params);
 };
+
+function encodeMarkdownData(value: string): string {
+  return encodeURIComponent(value);
+}
+
+function decodeMarkdownData(value?: string): string {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function renderMathExpression(expression: string, displayMode: boolean): string {
+  return katex.renderToString(expression.trim(), {
+    displayMode,
+    strict: 'ignore',
+    throwOnError: false,
+  });
+}
+
+function getMarkdownToolbarLabels() {
+  return {
+    copy: i18n('copy'),
+    copied: i18n('copied'),
+    expand: currentLanguage.value === 'zh-CN' ? '全屏' : 'Expand',
+    code: currentLanguage.value === 'zh-CN' ? '代码' : 'Code',
+  };
+}
+
+const markdownRenderer = {
+  link(this: any, { href = '', title, tokens }: any) {
+    const text = this.parser.parseInline(tokens);
+    const safeHref = escapeHtml(href);
+    const safeTitle = title ? ` title="${escapeHtml(title)}"` : '';
+    return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer"${safeTitle}>${text}</a>`;
+  },
+  code({ text = '', lang = '' }: any) {
+    const { copy, copied, expand, code } = getMarkdownToolbarLabels();
+    const normalizedCode = String(text).replace(/\n$/, '');
+    const language = String(lang || '').trim();
+    const languageLabel = language || code;
+    const encodedCode = encodeMarkdownData(normalizedCode);
+    const encodedLanguage = encodeMarkdownData(language);
+
+    return `
+      <div class="markdown-code-block">
+        <div class="markdown-code-toolbar">
+          <span class="markdown-code-language">${escapeHtml(languageLabel)}</span>
+          <div class="markdown-code-actions">
+            <button
+              type="button"
+              class="markdown-code-btn"
+              data-markdown-action="copy-code"
+              data-code="${encodedCode}"
+              data-language="${encodedLanguage}"
+              data-default-label="${escapeHtml(copy)}"
+              data-copied-label="${escapeHtml(copied)}"
+              title="${escapeHtml(copy)}"
+              aria-label="${escapeHtml(copy)}"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              <span class="markdown-code-btn-label">${escapeHtml(copy)}</span>
+            </button>
+            <button
+              type="button"
+              class="markdown-code-btn"
+              data-markdown-action="expand-code"
+              data-code="${encodedCode}"
+              data-language="${encodedLanguage}"
+              title="${escapeHtml(expand)}"
+              aria-label="${escapeHtml(expand)}"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3H5a2 2 0 00-2 2v3"/>
+                <path d="M16 3h3a2 2 0 012 2v3"/>
+                <path d="M8 21H5a2 2 0 01-2-2v-3"/>
+                <path d="M16 21h3a2 2 0 002-2v-3"/>
+              </svg>
+              <span class="markdown-code-btn-label">${escapeHtml(expand)}</span>
+            </button>
+          </div>
+        </div>
+        <pre><code>${escapeHtml(normalizedCode)}</code></pre>
+      </div>
+    `;
+  },
+};
+
+const blockMathExtension = {
+  name: 'blockMath',
+  level: 'block' as const,
+  start(src: string) {
+    return src.match(/\$\$/)?.index;
+  },
+  tokenizer(src: string) {
+    const match = /^\$\$[ \t]*\n([\s\S]+?)\n\$\$(?:\n|$)/.exec(src)
+      ?? /^\$\$([^\n]+?)\$\$(?:\n|$)/.exec(src);
+    if (!match) return undefined;
+    return {
+      type: 'blockMath',
+      raw: match[0],
+      text: match[1],
+    };
+  },
+  renderer(token: any) {
+    return `<div class="markdown-math-block">${renderMathExpression(token.text, true)}</div>`;
+  },
+};
+
+const inlineMathExtension = {
+  name: 'inlineMath',
+  level: 'inline' as const,
+  start(src: string) {
+    return src.indexOf('$');
+  },
+  tokenizer(src: string) {
+    if (src.startsWith('$$')) return undefined;
+    const match = /^\$((?:\\.|[^$\\\n])+?)\$(?!\$)/.exec(src);
+    if (!match) return undefined;
+    return {
+      type: 'inlineMath',
+      raw: match[0],
+      text: match[1],
+    };
+  },
+  renderer(token: any) {
+    return renderMathExpression(token.text, false);
+  },
+};
+
+const markdownParser = new Marked({
+  breaks: true,
+  gfm: true,
+  renderer: markdownRenderer,
+  extensions: [blockMathExtension, inlineMathExtension],
+});
+
+function renderMarkdown(content: string): string {
+  if (!content) return '';
+  return markdownParser.parse(content) as string;
+}
 
 // State
 const messages = shallowRef<ChatMessage[]>([]);
@@ -114,6 +253,7 @@ interface ActiveTabInfo {
 }
 
 const activeTabInfo = ref<ActiveTabInfo | null>(null);
+const sharePageHintDismissed = ref(false);
 const selectionQuotePopup = ref({
   visible: false,
   x: 0,
@@ -121,6 +261,7 @@ const selectionQuotePopup = ref({
   text: '',
 });
 const chatAbortController = ref<AbortController | null>(null);
+const fullscreenCodeBlock = ref<{ code: string; language: string } | null>(null);
 
 // Session state
 const currentSession = ref<ChatSession | null>(null);
@@ -185,63 +326,163 @@ function releaseLockedTab(): void {
 // 计算属性
 const isEditing = computed(() => editingMessageIndex.value !== null);
 
+function fallbackCopyText(content: string): boolean {
+  const textarea = document.createElement('textarea');
+  textarea.value = content;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+
+  textarea.select();
+  try {
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
+async function writeTextToClipboard(content: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(content);
+    return true;
+  } catch (error) {
+    console.error('Failed to copy with clipboard API:', error);
+    return fallbackCopyText(content);
+  }
+}
+
 // 复制消息（仅 AI 回复）
 async function copyMessage(index: number): Promise<void> {
   const message = messages.value[index];
   if (!message.content || message.role !== 'assistant') return;
-  
-  try {
-    await navigator.clipboard.writeText(message.content);
-    
-    // 显示已复制状态
-    copiedMessageIndex.value = index;
-    
-    // 2 秒后恢复
-    setTimeout(() => {
-      if (copiedMessageIndex.value === index) {
-        copiedMessageIndex.value = null;
-      }
-    }, 2000);
-  } catch (error) {
-    console.error('Failed to copy:', error);
-    // 降级方案
-    copyMessageFallback(message.content);
+
+  const copied = await writeTextToClipboard(message.content);
+  if (!copied) {
+    alert(currentLanguage.value === 'zh-CN' ? '复制失败' : 'Copy failed');
+    return;
   }
+
+  copiedMessageIndex.value = index;
+  setTimeout(() => {
+    if (copiedMessageIndex.value === index) {
+      copiedMessageIndex.value = null;
+    }
+  }, 2000);
 }
 
 // 处理消息鼠标移动，检测复制按钮应该显示在顶部还是底部
 function handleMessageMouseMove(event: MouseEvent, index: number): void {
   const target = event.currentTarget as HTMLElement;
   if (!target) return;
-  
+
   const rect = target.getBoundingClientRect();
   const mouseY = event.clientY;
   const middleY = rect.top + rect.height / 2;
-  
+
   // 鼠标在消息上半部分显示顶部按钮，下半部分显示底部按钮
   copyButtonPosition.value[index] = mouseY < middleY ? 'top' : 'bottom';
 }
 
-// 复制降级方案
-function copyMessageFallback(content: string): void {
-  const textarea = document.createElement('textarea');
-  textarea.value = content;
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  
-  textarea.select();
-  try {
-    document.execCommand('copy');
-    copiedMessageIndex.value = -1; // 使用 -1 表示降级方案成功
-    setTimeout(() => {
-      copiedMessageIndex.value = null;
-    }, 2000);
-  } catch (error) {
-    alert('复制失败');
+function flashMarkdownCodeButton(button: HTMLButtonElement): void {
+  const label = button.querySelector<HTMLElement>('.markdown-code-btn-label');
+  if (!label) return;
+
+  const defaultLabel = button.dataset.defaultLabel || label.textContent || '';
+  const copiedLabel = button.dataset.copiedLabel || defaultLabel;
+  const previousTimer = button.dataset.resetTimer ? Number(button.dataset.resetTimer) : null;
+  if (previousTimer) {
+    window.clearTimeout(previousTimer);
   }
-  
-  document.body.removeChild(textarea);
+
+  label.textContent = copiedLabel;
+  button.classList.add('copied');
+
+  const timerId = window.setTimeout(() => {
+    label.textContent = defaultLabel;
+    button.classList.remove('copied');
+    delete button.dataset.resetTimer;
+  }, 1600);
+
+  button.dataset.resetTimer = String(timerId);
+}
+
+function openFullscreenCodeBlock(code: string, language: string): void {
+  fullscreenCodeBlock.value = { code, language };
+}
+
+function closeFullscreenCodeBlock(): void {
+  fullscreenCodeBlock.value = null;
+}
+
+async function copyFullscreenCodeBlock(): Promise<void> {
+  if (!fullscreenCodeBlock.value) return;
+
+  const copied = await writeTextToClipboard(fullscreenCodeBlock.value.code);
+  if (!copied) {
+    alert(currentLanguage.value === 'zh-CN' ? '复制失败' : 'Copy failed');
+  }
+}
+
+async function handleMarkdownActionClick(event: MouseEvent): Promise<void> {
+  const target = event.target as HTMLElement | null;
+  const actionButton = target?.closest<HTMLButtonElement>('[data-markdown-action]');
+  if (!actionButton) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const code = decodeMarkdownData(actionButton.dataset.code);
+  const language = decodeMarkdownData(actionButton.dataset.language);
+  const action = actionButton.dataset.markdownAction;
+
+  if (action === 'copy-code') {
+    const copied = await writeTextToClipboard(code);
+    if (copied) {
+      flashMarkdownCodeButton(actionButton);
+    } else {
+      alert(currentLanguage.value === 'zh-CN' ? '复制失败' : 'Copy failed');
+    }
+    return;
+  }
+
+  if (action === 'expand-code') {
+    openFullscreenCodeBlock(code, language);
+  }
+}
+
+function dismissSharePageHint(): void {
+  sharePageHintDismissed.value = true;
+}
+
+async function initializeSharePagePreference(): Promise<void> {
+  const storedPreference = await getStoredSharePageContent();
+  if (storedPreference !== undefined) {
+    sharePageContent.value = storedPreference;
+    await setSharePageContentPreferenceInitialized(true);
+    return;
+  }
+
+  const preferenceInitialized = await getSharePageContentPreferenceInitialized();
+  if (preferenceInitialized) {
+    sharePageContent.value = false;
+    return;
+  }
+
+  const existingSessions = await getAllSessions();
+  const hasExistingData = providers.value.length > 0 || existingSessions.length > 0 || installedSkills.value.length > 0;
+  const defaultShareValue = !hasExistingData;
+
+  sharePageContent.value = defaultShareValue;
+  await setSharePageContent(defaultShareValue);
+  await setSharePageContentPreferenceInitialized(true);
+}
+
+function handleGlobalKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape' && fullscreenCodeBlock.value) {
+    closeFullscreenCodeBlock();
+  }
 }
 
 // 编辑消息
@@ -542,8 +783,25 @@ const activeModelSupportsVision = computed(() => {
   return isVisionSupportedForModel(activeProvider.value, activeProvider.value.selectedModel);
 });
 const hasPendingImages = computed(() => pendingImages.value.length > 0);
+const showSharePageHint = computed(() => {
+  return !sharePageContent.value && !sharePageHintDismissed.value && Boolean(activeTabInfo.value) && !isTabLocked.value;
+});
 const canSendMessage = computed(() => {
   return !isEditing.value && !isLoading.value && (inputText.value.trim().length > 0 || hasPendingImages.value);
+});
+const sharePageHintText = computed(() => {
+  return currentLanguage.value === 'zh-CN'
+    ? '点击选中这个标签页后，当前网页内容才会共享给 AI。'
+    : 'Click the tab chip to share the current page with AI.';
+});
+const codePreviewTitle = computed(() => {
+  return currentLanguage.value === 'zh-CN' ? '代码预览' : 'Code Preview';
+});
+const fullscreenLanguageLabel = computed(() => {
+  if (fullscreenCodeBlock.value?.language) {
+    return fullscreenCodeBlock.value.language;
+  }
+  return currentLanguage.value === 'zh-CN' ? '代码' : 'Code';
 });
 
 const activeTabButtonTitle = computed(() => {
@@ -842,12 +1100,13 @@ let tabsActivatedListener: ((activeInfo: any) => void) | null = null;
 let tabsUpdatedListener: ((tabId: number, changeInfo: any, tab: any) => void) | null = null;
 let sidepanelSelectionMouseupHandler: ((event: MouseEvent) => void) | null = null;
 let sidepanelSelectionMousedownHandler: ((event: MouseEvent) => void) | null = null;
+let markdownActionClickHandler: ((event: MouseEvent) => void) | null = null;
+let globalKeydownHandler: ((event: KeyboardEvent) => void) | null = null;
 
 onMounted(async () => {
   providers.value = await getAllProviders();
   const activeProvider = await getActiveProvider();
   activeProviderId.value = activeProvider?.id || null;
-  sharePageContent.value = await getSharePageContent();
   selectionQuoteEnabled.value = await getSelectionQuoteEnabled();
   maxPageContentLength.value = await getMaxPageContentLength();
   maxToolCalls.value = await getMaxToolCalls();
@@ -865,6 +1124,7 @@ onMounted(async () => {
   
   // 加载已安装的 Skills
   installedSkills.value = await getAllSkills();
+  await initializeSharePagePreference();
   
   // 初始化 MCP 连接
   await initMcpConnections();
@@ -975,6 +1235,14 @@ onMounted(async () => {
   };
   document.addEventListener('mouseup', sidepanelSelectionMouseupHandler);
   document.addEventListener('mousedown', sidepanelSelectionMousedownHandler);
+  markdownActionClickHandler = (event: MouseEvent) => {
+    void handleMarkdownActionClick(event);
+  };
+  globalKeydownHandler = (event: KeyboardEvent) => {
+    handleGlobalKeydown(event);
+  };
+  document.addEventListener('click', markdownActionClickHandler);
+  document.addEventListener('keydown', globalKeydownHandler);
 });
 
 // Skills 变更消息处理
@@ -1072,6 +1340,12 @@ onUnmounted(() => {
   }
   if (sidepanelSelectionMousedownHandler) {
     document.removeEventListener('mousedown', sidepanelSelectionMousedownHandler);
+  }
+  if (markdownActionClickHandler) {
+    document.removeEventListener('click', markdownActionClickHandler);
+  }
+  if (globalKeydownHandler) {
+    document.removeEventListener('keydown', globalKeydownHandler);
   }
   // 清理调试面板刷新定时器
   if (debugRefreshTimer) {
@@ -2061,29 +2335,44 @@ function rejectScript() {
         </button>
       </div>
 
-      <div class="tab-share-row">
-        <button
-          class="current-tab-chip"
-          :class="{ active: sharePageContent, disabled: !activeTabInfo, locked: isTabLocked, 'glow-animation': isTabLocked }"
-          :disabled="!activeTabInfo || isTabLocked"
-          :title="activeTabButtonTitle"
-          @click="toggleShareCurrentTab"
-        >
-          <span v-if="isTabLocked" class="lock-icon">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
-          </span>
-          <span class="tab-favicon" :class="{ placeholder: !activeTabInfo?.faviconUrl }">
-            <img v-if="activeTabInfo?.faviconUrl" :src="activeTabInfo.faviconUrl" alt="" />
-            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M3 12h18M12 3a14.5 14.5 0 0 1 0 18M12 3a14.5 14.5 0 0 0 0 18"/>
-            </svg>
-          </span>
-          <span class="tab-title">{{ activeTabInfo?.title || i18n('currentTab') }}</span>
-        </button>
+      <div class="tab-share-stack">
+        <div v-if="showSharePageHint" class="tab-share-hint" role="status">
+          <div class="tab-share-hint-label">{{ currentLanguage === 'zh-CN' ? '网页共享' : 'Page Share' }}</div>
+          <p class="tab-share-hint-text">{{ sharePageHintText }}</p>
+          <button
+            class="tab-share-hint-close"
+            type="button"
+            :title="currentLanguage === 'zh-CN' ? '关闭提示' : 'Dismiss hint'"
+            @click="dismissSharePageHint"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="tab-share-row">
+          <button
+            class="current-tab-chip"
+            :class="{ active: sharePageContent, disabled: !activeTabInfo, locked: isTabLocked, 'glow-animation': isTabLocked }"
+            :disabled="!activeTabInfo || isTabLocked"
+            :title="activeTabButtonTitle"
+            @click="toggleShareCurrentTab"
+          >
+            <span v-if="isTabLocked" class="lock-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </span>
+            <span class="tab-favicon" :class="{ placeholder: !activeTabInfo?.faviconUrl }">
+              <img v-if="activeTabInfo?.faviconUrl" :src="activeTabInfo.faviconUrl" alt="" />
+              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M3 12h18M12 3a14.5 14.5 0 0 1 0 18M12 3a14.5 14.5 0 0 0 0 18"/>
+              </svg>
+            </span>
+            <span class="tab-title">{{ activeTabInfo?.title || i18n('currentTab') }}</span>
+          </button>
+        </div>
       </div>
 
       <div v-if="pendingQuote" class="pending-quote">
@@ -2177,6 +2466,30 @@ function rejectScript() {
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="fullscreenCodeBlock" class="modal-overlay code-fullscreen-overlay" @click.self="closeFullscreenCodeBlock">
+      <div class="modal code-fullscreen-modal">
+        <div class="modal-header code-fullscreen-header">
+          <div class="code-fullscreen-meta">
+            <h2>{{ codePreviewTitle }}</h2>
+            <span class="code-fullscreen-language">{{ fullscreenLanguageLabel }}</span>
+          </div>
+          <div class="code-fullscreen-actions">
+            <button class="copy-btn" @click="copyFullscreenCodeBlock" :title="i18n('copy')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              {{ i18n('copy') }}
+            </button>
+            <button class="close-btn" @click="closeFullscreenCodeBlock">×</button>
+          </div>
+        </div>
+        <div class="code-fullscreen-body">
+          <pre><code>{{ fullscreenCodeBlock.code }}</code></pre>
         </div>
       </div>
     </div>

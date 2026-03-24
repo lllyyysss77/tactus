@@ -411,6 +411,20 @@ export async function getSharePageContent(): Promise<boolean> {
   return getSetting('sharePageContent', false);
 }
 
+export async function getStoredSharePageContent(): Promise<boolean | undefined> {
+  const db = await getDB();
+  const value = await db.get('settings', 'sharePageContent');
+  return typeof value === 'boolean' ? value : undefined;
+}
+
 export async function setSharePageContent(value: boolean): Promise<void> {
   await setSetting('sharePageContent', value);
+}
+
+export async function getSharePageContentPreferenceInitialized(): Promise<boolean> {
+  return getSetting('sharePageContentPreferenceInitialized', false);
+}
+
+export async function setSharePageContentPreferenceInitialized(value: boolean): Promise<void> {
+  await setSetting('sharePageContentPreferenceInitialized', value);
 }
