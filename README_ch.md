@@ -286,8 +286,8 @@ Apache-2.0 License
 <!-- LINK GROUP -->
 [chrome-store-link]: https://chromewebstore.google.com/detail/tactus/nmhndbemnmmigjooiafblchoegecmkhh
 [chrome-version-shield]: https://img.shields.io/chrome-web-store/v/nmhndbemnmmigjooiafblchoegecmkhh?style=flat-square&label=Chrome&labelColor=black&color=blue
-[chrome-users-shield]: https://img.shields.io/chrome-web-store/users/nmhndbemnmmigjooiafblchoegecmkhh?style=flat-square&label=Users&labelColor=black&color=blue
+[chrome-users-shield]: https://img.shields.io/chrome-web-store/users/nmhndbemnmmigjooiafblchoegecmkhh?style=flat-square&label=Chrome%20Users&labelColor=black&color=blue
 [firefox-store-link]: https://addons.mozilla.org/firefox/addon/tactus
 [firefox-version-shield]: https://img.shields.io/amo/v/tactus?style=flat-square&label=Firefox&labelColor=black&color=orange
-[firefox-users-shield]: https://img.shields.io/amo/users/tactus?style=flat-square&label=Users&labelColor=black&color=orange
+[firefox-users-shield]: https://img.shields.io/amo/users/tactus?style=flat-square&label=Firefox%20Users&labelColor=black&color=orange
 
