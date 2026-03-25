@@ -51,6 +51,7 @@ import {
 import { streamChat, getLastApiMessages, setLastApiMessages, ApiError, type ToolExecutor, type ApiMessage } from '../../utils/api';
 import { extractPageContent, truncateContent } from '../../utils/pageExtractor';
 import { getToolStatusText, isMcpTool, parseMcpToolName, type ToolCall, type ToolResult, type SkillInfo } from '../../utils/tools';
+import { shouldSubmitOnEnter } from '../../utils/enterSubmit';
 import { getAllSkills, getSkillByName, getSkillFileAsText, type Skill } from '../../utils/skills';
 import { executeScript, setScriptConfirmCallback, type ScriptConfirmationRequest } from '../../utils/skillsExecutor';
 import { t, type Translations } from '../../utils/i18n';
@@ -1868,14 +1869,29 @@ async function sendMessage() {
 
 // Handle Enter key
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
+  if (!shouldSubmitOnEnter({
+    key: e.key,
+    shiftKey: e.shiftKey,
+    isComposing: e.isComposing || isInputComposing.value,
+    keyCode: e.keyCode,
+    which: e.which,
+  })) return;
+
+  e.preventDefault();
+  sendMessage();
 }
 
 // Textarea ref for auto-resize
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const isInputComposing = ref(false);
+
+function handleCompositionStart() {
+  isInputComposing.value = true;
+}
+
+function handleCompositionEnd() {
+  isInputComposing.value = false;
+}
 
 function autoResizeTextarea() {
   const textarea = textareaRef.value;
@@ -2404,6 +2420,8 @@ function rejectScript() {
           :placeholder="i18n('inputPlaceholder')"
           rows="1"
           @keydown="handleKeydown"
+          @compositionstart="handleCompositionStart"
+          @compositionend="handleCompositionEnd"
           @paste="handleInputPaste"
         ></textarea>
         <div class="input-actions">
