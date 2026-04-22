@@ -22,6 +22,16 @@
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "Source Sans 3", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
+  --ui-font-scale: 1;
+  --font-2xs: calc(10px * var(--ui-font-scale));
+  --font-xs: calc(11px * var(--ui-font-scale));
+  --font-sm: calc(12px * var(--ui-font-scale));
+  --font-sm-plus: calc(12.5px * var(--ui-font-scale));
+  --font-md: calc(13px * var(--ui-font-scale));
+  --font-base: calc(14px * var(--ui-font-scale));
+  --font-base-plus: calc(15px * var(--ui-font-scale));
+  --font-lg: calc(18px * var(--ui-font-scale));
+  --font-xl: calc(24px * var(--ui-font-scale));
 }
 
 /* Dark Theme */
@@ -67,6 +77,7 @@
 
 body {
   font-family: var(--font-body);
+  font-size: var(--font-md);
   background: var(--background);
   color: var(--foreground);
   line-height: 1.6;
@@ -100,7 +111,7 @@ body {
 
 .nav-header h1 {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--foreground);
 }
@@ -125,7 +136,7 @@ body {
   padding: 12px 14px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-base);
   color: var(--muted-foreground);
   transition: all 200ms ease-out;
 }
@@ -160,14 +171,14 @@ body {
 
 .content-header h2 {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: var(--font-xl);
   font-weight: 600;
   color: var(--foreground);
   margin-bottom: 4px;
 }
 
 .content-desc {
-  font-size: 14px;
+  font-size: var(--font-base);
   color: var(--muted-foreground);
 }
 
@@ -200,7 +211,7 @@ body {
 
 .section-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -265,7 +276,7 @@ body {
 .provider-name {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-base);
   color: var(--foreground);
   margin-bottom: 2px;
   white-space: nowrap;
@@ -275,7 +286,7 @@ body {
 
 .provider-model {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
@@ -284,7 +295,7 @@ body {
 
 .active-badge {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--accent);
@@ -298,7 +309,7 @@ body {
   padding: 24px 16px;
   text-align: center;
   color: var(--muted-foreground);
-  font-size: 13px;
+  font-size: var(--font-md);
 }
 
 /* Form Area */
@@ -324,7 +335,7 @@ body {
 
 .form-header h3 {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--foreground);
 }
@@ -345,7 +356,7 @@ body {
 .form-group label {
   display: block;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -374,7 +385,7 @@ body {
   padding: 12px 16px;
   border: 1px solid var(--input);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--font-base);
   font-family: var(--font-body);
   outline: none;
   background: transparent;
@@ -397,7 +408,7 @@ body {
 
 .fetch-btn {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   letter-spacing: 0.05em;
   color: var(--accent);
   background: transparent;
@@ -426,7 +437,7 @@ body {
 }
 
 .available-models-label {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   margin-bottom: 10px;
 }
@@ -442,7 +453,7 @@ body {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-family: var(--font-mono);
   color: var(--foreground);
   cursor: pointer;
@@ -478,7 +489,7 @@ body {
   background: var(--muted);
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--foreground);
   cursor: pointer;
   transition: all 200ms ease-out;
@@ -501,14 +512,14 @@ body {
 }
 
 .selected-models-label {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   margin-bottom: 10px;
 }
 
 .selected-models-hint {
   margin: 0 0 12px;
-  font-size: 12px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--muted-foreground);
 }
@@ -538,7 +549,7 @@ body {
 
 .model-item .model-name {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--foreground);
 }
 
@@ -551,7 +562,7 @@ body {
 }
 
 .model-vision-state {
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-family: var(--font-mono);
   color: var(--muted-foreground);
 }
@@ -570,13 +581,28 @@ body {
   gap: 8px;
 }
 
+.model-vision-toggle .toggle-track {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+}
+
+.model-vision-toggle .toggle-thumb {
+  width: 16px;
+  height: 16px;
+}
+
+.model-vision-toggle.active .toggle-thumb {
+  left: 20px;
+}
+
 .model-vision-toggle .toggle-label {
-  font-size: 12px;
+  font-size: var(--font-sm);
   min-width: 28px;
 }
 
 .set-default-btn {
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-family: var(--font-mono);
   color: var(--muted-foreground);
   background: transparent;
@@ -593,7 +619,7 @@ body {
 }
 
 .default-label {
-  font-size: 10px;
+  font-size: var(--font-2xs);
   font-family: var(--font-mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -640,7 +666,7 @@ body {
 }
 
 .auto-save-hint {
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--muted-foreground);
 }
 
@@ -656,7 +682,7 @@ body {
   gap: 6px;
   padding: 8px 16px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-family: var(--font-body);
   color: var(--foreground);
   background: var(--card);
@@ -685,7 +711,7 @@ body {
 .btn {
   padding: 12px 24px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--font-base);
   font-family: var(--font-body);
   font-weight: 500;
   cursor: pointer;
@@ -803,7 +829,7 @@ body {
 
 .skill-badge {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
@@ -813,12 +839,12 @@ body {
 }
 
 .skill-date {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
 }
 
 .skill-description {
-  font-size: 14px;
+  font-size: var(--font-base);
   line-height: 1.7;
   color: var(--foreground);
   white-space: pre-wrap;
@@ -826,13 +852,13 @@ body {
 
 .skill-compat {
   margin-top: 12px;
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--muted-foreground);
 }
 
 .compat-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   letter-spacing: 0.05em;
   color: var(--accent);
 }
@@ -872,7 +898,7 @@ body {
 
 .script-name {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--foreground);
 }
 
@@ -884,7 +910,7 @@ body {
 
 .trusted-badge {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #2F855A;
@@ -901,7 +927,7 @@ body {
 
 .untrusted-badge {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -913,7 +939,7 @@ body {
 
 .script-hint {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
 }
 
@@ -932,7 +958,7 @@ body {
   background: var(--muted);
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-family: var(--font-mono);
   color: var(--foreground);
 }
@@ -954,7 +980,7 @@ body {
 
 .instructions-preview pre {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--foreground);
   white-space: pre-wrap;
@@ -1005,7 +1031,7 @@ body {
 
 .modal-header h3 {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--foreground);
 }
@@ -1013,7 +1039,7 @@ body {
 .close-btn {
   background: transparent;
   border: none;
-  font-size: 24px;
+  font-size: var(--font-xl);
   color: var(--muted-foreground);
   cursor: pointer;
   padding: 0;
@@ -1031,7 +1057,7 @@ body {
 }
 
 .import-desc {
-  font-size: 14px;
+  font-size: var(--font-base);
   color: var(--muted-foreground);
   margin-bottom: 20px;
   line-height: 1.6;
@@ -1039,7 +1065,7 @@ body {
 
 .import-desc code {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   background: var(--muted);
   padding: 2px 6px;
   border-radius: 4px;
@@ -1080,7 +1106,7 @@ body {
 }
 
 .import-label span {
-  font-size: 14px;
+  font-size: var(--font-base);
 }
 
 .import-error {
@@ -1092,7 +1118,7 @@ body {
   border: 1px solid var(--danger);
   border-radius: 8px;
   color: var(--danger);
-  font-size: 13px;
+  font-size: var(--font-md);
   margin-bottom: 16px;
 }
 
@@ -1108,7 +1134,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 500;
   color: #B45309;
   margin-bottom: 8px;
@@ -1117,7 +1143,7 @@ body {
 .import-warnings ul {
   margin: 0 0 12px 24px;
   padding: 0;
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: #92400E;
 }
 
@@ -1133,7 +1159,7 @@ body {
 
 .import-help h4 {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
@@ -1142,7 +1168,7 @@ body {
 
 .import-help pre {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--foreground);
   margin: 0;
@@ -1189,7 +1215,7 @@ body {
   align-items: center;
   gap: 10px;
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: var(--font-base-plus);
   font-weight: 600;
   color: var(--foreground);
   margin-bottom: 4px;
@@ -1201,7 +1227,7 @@ body {
 }
 
 .settings-item-desc {
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--muted-foreground);
   line-height: 1.5;
 }
@@ -1226,7 +1252,7 @@ body {
   border: none;
   background: transparent;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-family: var(--font-body);
   color: var(--muted-foreground);
   cursor: pointer;
@@ -1262,7 +1288,7 @@ body {
   .language-selector {
     width: 100%;
   }
-  
+
   .lang-btn {
     flex: 1;
     text-align: center;
@@ -1348,7 +1374,7 @@ body {
 }
 
 .toggle-label {
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--muted-foreground);
   transition: color 200ms ease-out;
 }
@@ -1381,7 +1407,7 @@ body {
   padding: 10px 14px;
   border: 1px solid var(--input);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--font-base);
   font-family: var(--font-body);
   outline: none;
   background: transparent;
@@ -1404,14 +1430,39 @@ body {
 
 .btn-sm {
   padding: 10px 16px;
-  font-size: 13px;
+  font-size: var(--font-md);
   min-height: 40px;
 }
 
 .settings-hint {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   margin-bottom: 12px;
+}
+
+.font-scale-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.font-scale-input-row {
+  align-items: center;
+}
+
+.font-scale-number {
+  max-width: 160px;
+}
+
+@media (max-width: 640px) {
+  .font-scale-input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .font-scale-number {
+    max-width: none;
+  }
 }
 
 .site-tags {
@@ -1428,7 +1479,7 @@ body {
   background: var(--muted);
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-family: var(--font-mono);
   color: var(--foreground);
   transition: all 200ms ease-out;
@@ -1457,7 +1508,7 @@ body {
 }
 
 .no-sites {
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--muted-foreground);
   padding: 12px 0;
 }
@@ -1473,7 +1524,7 @@ body {
 
 .mcp-status-badge {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 4px 8px;
@@ -1498,13 +1549,13 @@ body {
 
 .form-hint {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
 }
 
 .api-endpoint-preview {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   word-break: break-all;
 }
@@ -1515,7 +1566,7 @@ body {
   gap: 8px;
   padding: 12px 16px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: var(--font-md);
   margin-top: 12px;
 }
 
@@ -1563,7 +1614,7 @@ body {
   border: none;
   background: transparent;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-family: var(--font-body);
   color: var(--muted-foreground);
   cursor: pointer;
@@ -1640,13 +1691,13 @@ body {
 
 .preset-name {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: var(--font-base);
   font-weight: 600;
   color: var(--foreground);
 }
 
 .preset-content-preview {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
@@ -1704,7 +1755,7 @@ body {
   padding: 12px 16px;
   border: 1px solid var(--input);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--font-base);
   font-family: var(--font-body);
   outline: none;
   background: transparent;
@@ -1761,13 +1812,13 @@ body {
 }
 
 .data-transfer-card-title {
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 500;
   color: var(--foreground);
 }
 
 .data-transfer-card-desc {
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   line-height: 1.4;
 }
@@ -1808,7 +1859,7 @@ label.btn.disabled {
 }
 
 .confirm-warning p {
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--foreground);
   line-height: 1.6;
   margin: 0;

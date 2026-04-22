@@ -12,6 +12,12 @@ import {
   trustScript,
   getThemeMode,
   setThemeMode,
+  getUiFontScale,
+  setUiFontScale,
+  getAssistantDisplayMode,
+  setAssistantDisplayMode,
+  getAssistantWindowBounds,
+  setAssistantWindowBounds,
   getLanguage,
   setLanguage,
   getFloatingBallEnabled,
@@ -29,6 +35,9 @@ import {
   type AIProvider,
   type TrustedScript,
   type ThemeMode,
+  type UiFontScale,
+  type AssistantDisplayMode,
+  type AssistantWindowBounds,
   type Language,
   type PresetAction,
 } from './storage';
@@ -64,6 +73,9 @@ export interface ExportData {
     activeProviderId: string | null;
     trustedScripts: TrustedScript[];
     themeMode: ThemeMode;
+    uiFontSize: UiFontScale;
+    assistantDisplayMode: AssistantDisplayMode;
+    assistantWindowBounds: AssistantWindowBounds;
     language: Language;
     floatingBallEnabled: boolean;
     selectionQuoteEnabled: boolean;
@@ -130,6 +142,9 @@ export async function exportAllData(): Promise<ExportData> {
     activeProvider,
     trustedScripts,
     themeMode,
+    uiFontSize,
+    assistantDisplayMode,
+    assistantWindowBounds,
     language,
     floatingBallEnabled,
     selectionQuoteEnabled,
@@ -143,6 +158,9 @@ export async function exportAllData(): Promise<ExportData> {
     getActiveProvider(),
     getTrustedScripts(),
     getThemeMode(),
+    getUiFontScale(),
+    getAssistantDisplayMode(),
+    getAssistantWindowBounds(),
     getLanguage(),
     getFloatingBallEnabled(),
     getSelectionQuoteEnabled(),
@@ -183,6 +201,9 @@ export async function exportAllData(): Promise<ExportData> {
       activeProviderId: activeProvider?.id ?? null,
       trustedScripts,
       themeMode,
+      uiFontSize,
+      assistantDisplayMode,
+      assistantWindowBounds,
       language,
       floatingBallEnabled,
       selectionQuoteEnabled,
@@ -273,6 +294,9 @@ export async function importAllData(raw: unknown): Promise<ImportResult> {
 
     // 通用设置
     if (data.themeMode) await setThemeMode(data.themeMode);
+    if (data.uiFontSize !== undefined) await setUiFontScale(data.uiFontSize as any);
+    if (data.assistantDisplayMode) await setAssistantDisplayMode(data.assistantDisplayMode);
+    if (data.assistantWindowBounds) await setAssistantWindowBounds(data.assistantWindowBounds);
     if (data.language) await setLanguage(data.language);
     if (typeof data.floatingBallEnabled === 'boolean') await setFloatingBallEnabled(data.floatingBallEnabled);
     if (typeof data.selectionQuoteEnabled === 'boolean') await setSelectionQuoteEnabled(data.selectionQuoteEnabled);

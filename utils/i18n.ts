@@ -88,6 +88,8 @@ export interface Translations {
   generalSettingsDesc: string;
   language: string;
   languageDesc: string;
+  fontSize: string;
+  fontSizeDesc: string;
   floatingBall: string;
   floatingBallDesc: string;
   floatingBallEnabled: string;
@@ -148,6 +150,8 @@ export interface Translations {
   newChat: string;
   history: string;
   settings: string;
+  switchToWindow: string;
+  switchToSidepanel: string;
   sharePageContent: string;
   pageContentShared: string;
   currentTab: string;
@@ -316,6 +320,8 @@ const en: Translations = {
   generalSettingsDesc: 'Configure extension options',
   language: 'Language',
   languageDesc: 'Select the language for interface and AI responses',
+  fontSize: 'Font Scale',
+  fontSizeDesc: 'Adjust the overall UI scale across settings and the assistant panel. Supports any value from 0.5x to 2x.',
   floatingBall: 'Floating Ball',
   floatingBallDesc: 'Show floating ball on the right side of pages for quick access',
   floatingBallEnabled: 'Enabled',
@@ -376,6 +382,8 @@ const en: Translations = {
   newChat: 'New Chat',
   history: 'History',
   settings: 'Settings',
+  switchToWindow: 'Switch to standalone window',
+  switchToSidepanel: 'Switch to side panel',
   sharePageContent: 'Share page content',
   pageContentShared: 'Page content will be shared with AI',
   currentTab: 'Current tab',
@@ -544,6 +552,8 @@ const zhCN: Translations = {
   generalSettingsDesc: '配置扩展的通用选项',
   language: '语言 / Language',
   languageDesc: '选择界面和 AI 回复的语言',
+  fontSize: '界面倍数',
+  fontSizeDesc: '调整设置页与助手面板的整体字号倍率，支持 0.5x 到 2x 的任意倍率',
   floatingBall: '悬浮球',
   floatingBallDesc: '在页面右侧显示悬浮球，方便快速访问',
   floatingBallEnabled: '已启用',
@@ -604,6 +614,8 @@ const zhCN: Translations = {
   newChat: '新建对话',
   history: '历史对话',
   settings: '设置',
+  switchToWindow: '切换到独立窗口',
+  switchToSidepanel: '切换到侧边栏',
   sharePageContent: '分享当前页面内容',
   pageContentShared: '页面内容将与 AI 共享',
   currentTab: '当前标签页',

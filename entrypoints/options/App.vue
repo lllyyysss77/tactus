@@ -24,6 +24,15 @@ import {
   getThemeMode,
   watchThemeMode,
   applyTheme,
+  getUiFontScale,
+  setUiFontScale,
+  watchUiFontScale,
+  applyUiFontScale,
+  normalizeUiFontScaleValue,
+  UI_FONT_SCALE_DEFAULT,
+  UI_FONT_SCALE_MIN,
+  UI_FONT_SCALE_MAX,
+  UI_FONT_SCALE_STEP,
   getPresetActions,
   addPresetAction,
   updatePresetAction,
@@ -34,6 +43,7 @@ import {
   type Language,
   type PresetAction,
   type ProviderType,
+  type UiFontScale,
 } from '../../utils/storage';
 import {
   getAllSkills,
@@ -66,6 +76,9 @@ const activeNav = ref<'models' | 'skills' | 'mcp' | 'settings'>('models');
 
 // 语言设置
 const currentLanguage = ref<Language>('en');
+const uiFontScale = ref<UiFontScale>(UI_FONT_SCALE_DEFAULT);
+const uiFontScaleInput = ref(String(UI_FONT_SCALE_DEFAULT));
+const unwatchUiFontScale = ref<(() => void) | null>(null);
 
 // 悬浮球设置
 const isFirefox = import.meta.env.FIREFOX;
@@ -222,6 +235,8 @@ async function loadAllData() {
   }
   await loadSkills();
   currentLanguage.value = await getLanguage();
+  uiFontScale.value = await getUiFontScale();
+  uiFontScaleInput.value = formatUiFontScale(uiFontScale.value);
   floatingBallEnabled.value = await getFloatingBallEnabled();
   selectionQuoteEnabled.value = await getSelectionQuoteEnabled();
   maxPageContentLength.value = await getMaxPageContentLength();
@@ -231,6 +246,7 @@ async function loadAllData() {
   mcpServers.value = await getAllMcpServers();
   const themeMode = await getThemeMode();
   applyTheme(themeMode);
+  applyUiFontScale(uiFontScale.value);
 }
 
 onMounted(async () => {
@@ -250,6 +266,13 @@ onMounted(async () => {
     applyTheme(newMode);
   });
 
+  // 监听字号变化（跨页面同步）
+  unwatchUiFontScale.value = watchUiFontScale((scale) => {
+    uiFontScale.value = scale;
+    uiFontScaleInput.value = formatUiFontScale(scale);
+    applyUiFontScale(scale);
+  });
+
   // 监听 MCP Server 配置变化
   unwatchMcpServers.value = watchMcpServers((servers) => {
     mcpServers.value = servers;
@@ -266,6 +289,7 @@ async function handleSystemThemeChange() {
 
 onUnmounted(() => {
   unwatchThemeMode.value?.();
+  unwatchUiFontScale.value?.();
   unwatchMcpServers.value?.();
   unwatchPresetActions.value?.();
   systemThemeMediaQuery.value?.removeEventListener('change', handleSystemThemeChange);
@@ -519,6 +543,30 @@ function formatDate(timestamp: number): string {
 async function handleLanguageChange(lang: Language) {
   currentLanguage.value = lang;
   await setLanguage(lang);
+}
+
+function formatUiFontScale(value: number): string {
+  return value.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function parseUiFontScaleInput(): UiFontScale | null {
+  const trimmedValue = uiFontScaleInput.value.trim();
+  if (!trimmedValue) return null;
+  const parsedValue = Number(trimmedValue);
+  if (!Number.isFinite(parsedValue)) return null;
+  return normalizeUiFontScaleValue(parsedValue);
+}
+
+async function commitUiFontScale() {
+  const normalized = parseUiFontScaleInput();
+  if (normalized === null) {
+    uiFontScaleInput.value = formatUiFontScale(uiFontScale.value);
+    return;
+  }
+  uiFontScale.value = normalized;
+  uiFontScaleInput.value = formatUiFontScale(normalized);
+  applyUiFontScale(normalized);
+  await setUiFontScale(normalized);
 }
 
 // 悬浮球开关切换
@@ -1296,7 +1344,38 @@ function showToast(message: string) {
                   </div>
                 </div>
               </div>
-              
+
+              <div class="settings-divider"></div>
+
+              <div class="settings-item settings-item-vertical">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 7h16M4 12h16M4 17h10"/>
+                    </svg>
+                    <span>{{ i18n('fontSize') }}</span>
+                  </div>
+                  <p class="settings-item-desc">{{ i18n('fontSizeDesc') }}</p>
+                </div>
+                <div class="settings-item-content">
+                  <div class="font-scale-panel">
+                    <div class="site-input-row font-scale-input-row">
+                      <input
+                        v-model="uiFontScaleInput"
+                        class="site-input font-scale-number"
+                        type="text"
+                        inputmode="decimal"
+                        :placeholder="`${UI_FONT_SCALE_DEFAULT}`"
+                        @keydown.enter.prevent="commitUiFontScale"
+                      />
+                      <button class="btn btn-primary btn-sm" @click="commitUiFontScale">
+                        {{ i18n('save') }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="settings-divider" v-if="!isFirefox"></div>
 
               <div class="settings-item" v-if="!isFirefox">

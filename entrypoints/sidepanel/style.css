@@ -23,6 +23,16 @@
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "Source Sans 3", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
+  --ui-font-scale: 1;
+  --font-2xs: calc(10px * var(--ui-font-scale));
+  --font-xs: calc(11px * var(--ui-font-scale));
+  --font-sm: calc(12px * var(--ui-font-scale));
+  --font-sm-plus: calc(12.5px * var(--ui-font-scale));
+  --font-md: calc(13px * var(--ui-font-scale));
+  --font-base: calc(14px * var(--ui-font-scale));
+  --font-base-plus: calc(15px * var(--ui-font-scale));
+  --font-lg: calc(18px * var(--ui-font-scale));
+  --font-xl: calc(24px * var(--ui-font-scale));
 }
 
 /* Dark Theme */
@@ -103,6 +113,7 @@
 
 body {
   font-family: var(--font-body);
+  font-size: var(--font-md);
   background: var(--background);
   color: var(--foreground);
   height: 100vh;
@@ -136,7 +147,7 @@ body {
 
 .header h1 {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--foreground);
   letter-spacing: -0.01em;
@@ -208,7 +219,7 @@ body {
 .tab-share-hint-label {
   margin-bottom: 4px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -216,7 +227,7 @@ body {
 }
 
 .tab-share-hint-text {
-  font-size: 12px;
+  font-size: var(--font-sm);
   line-height: 1.55;
   color: var(--foreground);
   margin: 0;
@@ -322,7 +333,7 @@ body {
 .tab-title {
   min-width: 0;
   flex: 1;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 600;
   line-height: 1.25;
   white-space: nowrap;
@@ -344,7 +355,7 @@ body {
 .message {
   max-width: 88%;
   padding: 14px 18px;
-  font-size: 14px;
+  font-size: var(--font-base);
   line-height: 1.75;
   word-wrap: break-word;
   position: relative;
@@ -352,7 +363,7 @@ body {
 
 .message-time {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   color: var(--muted-foreground);
   margin-bottom: 6px;
   letter-spacing: 0.05em;
@@ -386,7 +397,7 @@ body {
   padding: 10px 14px;
   border-radius: 6px;
   margin-bottom: 12px;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-style: italic;
   border-left: 2px solid var(--accent);
   color: var(--muted-foreground);
@@ -433,7 +444,7 @@ body {
   background: var(--card);
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   padding: 8px 10px;
   cursor: pointer;
   box-shadow: var(--shadow-md);
@@ -449,7 +460,7 @@ body {
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 12px;
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--muted-foreground);
   display: flex;
   justify-content: space-between;
@@ -471,7 +482,7 @@ body {
   color: var(--muted-foreground);
   cursor: pointer;
   padding: 0 4px;
-  font-size: 18px;
+  font-size: var(--font-lg);
   transition: color 200ms ease-out;
 }
 
@@ -517,7 +528,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: var(--font-base);
   line-height: 1;
 }
 
@@ -543,7 +554,7 @@ body {
   width: 100%;
   padding: 12px 16px;
   border: none;
-  font-size: 14px;
+  font-size: var(--font-base);
   resize: none;
   outline: none;
   font-family: var(--font-body);
@@ -561,7 +572,7 @@ body {
 
 .image-upload-hint {
   padding: 8px 14px 0;
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   font-family: var(--font-mono);
 }
@@ -617,7 +628,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-family: var(--font-mono);
   color: var(--muted-foreground);
   transition: all 200ms ease-out;
@@ -681,7 +692,7 @@ body {
   padding: 16px;
   text-align: center;
   color: var(--muted-foreground);
-  font-size: 13px;
+  font-size: var(--font-md);
 }
 
 .dropdown-empty span {
@@ -713,7 +724,7 @@ body {
 }
 
 .model-option .option-provider {
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--muted-foreground);
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
@@ -721,7 +732,7 @@ body {
 
 .model-option .option-model {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--foreground);
   word-break: break-all;
@@ -741,7 +752,7 @@ body {
   background: transparent;
   border: none;
   color: var(--accent);
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-family: var(--font-mono);
   cursor: pointer;
   transition: background 150ms ease-out;
@@ -773,7 +784,7 @@ body {
   border: 1px solid #C53030;
   background: transparent;
   color: #C53030;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-family: var(--font-mono);
   cursor: pointer;
   transition: all 180ms ease-out;
@@ -831,7 +842,7 @@ body {
 
 .modal-header h2 {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--foreground);
 }
@@ -839,7 +850,7 @@ body {
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: var(--font-xl);
   cursor: pointer;
   color: var(--muted-foreground);
   transition: color 200ms ease-out;
@@ -861,7 +872,7 @@ body {
 .form-group label {
   display: block;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -875,7 +886,7 @@ body {
   padding: 12px 14px;
   border: 1px solid var(--input);
   border-radius: 6px;
-  font-size: 14px;
+  font-size: var(--font-base);
   font-family: var(--font-body);
   outline: none;
   background: transparent;
@@ -902,7 +913,7 @@ body {
 .btn {
   padding: 12px 20px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--font-md);
   font-family: var(--font-body);
   font-weight: 500;
   cursor: pointer;
@@ -952,7 +963,7 @@ body {
 
 .btn-sm {
   padding: 8px 14px;
-  font-size: 12px;
+  font-size: var(--font-sm);
   min-height: 36px;
 }
 
@@ -992,14 +1003,14 @@ body {
 .provider-name {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--font-base-plus);
   color: var(--foreground);
   margin-bottom: 2px;
 }
 
 .provider-model {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   letter-spacing: 0.05em;
   color: var(--muted-foreground);
 }
@@ -1018,13 +1029,13 @@ body {
 
 .empty-state p:first-child {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--font-lg);
   color: var(--foreground);
   margin-bottom: 8px;
 }
 
 .empty-state .empty-hint {
-  font-size: 12px;
+  font-size: var(--font-sm);
   margin-top: 12px;
   color: var(--muted-foreground);
 }
@@ -1033,7 +1044,7 @@ body {
   text-align: center;
   padding: 32px 24px;
   color: var(--muted-foreground);
-  font-size: 14px;
+  font-size: var(--font-base);
 }
 
 /* Session list */
@@ -1093,7 +1104,7 @@ body {
 .session-title {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-base);
   color: var(--foreground);
   margin-bottom: 4px;
   white-space: nowrap;
@@ -1105,7 +1116,7 @@ body {
   display: flex;
   gap: 12px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   color: var(--muted-foreground);
   letter-spacing: 0.02em;
 }
@@ -1139,7 +1150,7 @@ body {
   text-align: center;
   padding: 16px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
 }
 
@@ -1160,7 +1171,7 @@ body {
   align-items: center;
   gap: 10px;
   color: var(--muted-foreground);
-  font-size: 13px;
+  font-size: var(--font-md);
   padding: 8px 0;
 }
 
@@ -1203,7 +1214,7 @@ body {
 
 .section-divider span {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -1244,7 +1255,7 @@ body {
 
 /* Markdown Content Styles */
 .markdown-content {
-  font-size: 14px;
+  font-size: var(--font-base);
   line-height: 1.75;
   color: var(--foreground);
 }
@@ -1270,7 +1281,7 @@ body {
 .markdown-code-language {
   min-width: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1311,7 +1322,7 @@ body {
 
 .markdown-code-btn-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   letter-spacing: 0.04em;
 }
 
@@ -1555,7 +1566,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   cursor: pointer;
   transition: all 200ms ease-out;
@@ -1601,7 +1612,7 @@ body {
 .debug-role {
   padding: 8px 12px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1625,7 +1636,7 @@ body {
 .debug-content {
   padding: 12px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -1660,7 +1671,7 @@ body {
   gap: 6px;
   padding: 8px 12px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--font-2xs);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1686,7 +1697,7 @@ body {
 .debug-empty {
   padding: 12px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   font-style: italic;
 }
@@ -1703,7 +1714,7 @@ body {
 }
 
 .script-confirm-info p {
-  font-size: 14px;
+  font-size: var(--font-base);
   color: var(--foreground);
   margin-bottom: 12px;
 }
@@ -1714,7 +1725,7 @@ body {
 
 .script-name-display {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--font-md);
   background: var(--muted);
   padding: 10px 14px;
   border-radius: 6px;
@@ -1728,7 +1739,7 @@ body {
 
 .script-preview-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1742,7 +1753,7 @@ body {
   padding: 14px;
   border-radius: 8px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   line-height: 1.6;
   max-height: 200px;
   overflow-y: auto;
@@ -1768,7 +1779,7 @@ body {
 }
 
 .script-confirm-warning span {
-  font-size: 13px;
+  font-size: var(--font-md);
   color: #92400E;
 }
 
@@ -1806,7 +1817,7 @@ body {
   border-radius: 6px;
   cursor: pointer;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--muted-foreground);
   transition: all 200ms ease-out;
   width: 100%;
@@ -1874,7 +1885,7 @@ body {
 }
 
 .reasoning-text {
-  font-size: 13px;
+  font-size: var(--font-md);
   line-height: 1.7;
   color: var(--muted-foreground);
 }
@@ -2022,7 +2033,7 @@ body {
 
 .quote-content {
   flex: 1;
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--muted-foreground);
   font-style: italic;
 }
@@ -2034,7 +2045,7 @@ body {
   border: none;
   background: transparent;
   color: var(--muted-foreground);
-  font-size: 18px;
+  font-size: var(--font-lg);
   line-height: 1;
   cursor: pointer;
   transition: color 200ms ease-out;
@@ -2054,7 +2065,7 @@ body {
   border: 1px solid var(--input);
   border-radius: 6px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--font-base);
   line-height: 1.6;
   resize: vertical;
   outline: none;
@@ -2104,7 +2115,7 @@ body {
   gap: 10px;
   padding: 10px 14px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-md);
   color: var(--foreground);
   transition: all 150ms ease-out;
 }
@@ -2169,7 +2180,7 @@ body {
   background: var(--muted);
   border: 1px solid var(--border);
   border-radius: 20px;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-family: var(--font-body);
   color: var(--foreground);
   cursor: pointer;
@@ -2326,7 +2337,7 @@ body {
   background: var(--muted);
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -2351,7 +2362,7 @@ body {
   background: transparent;
   color: #E8E4DF;
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: var(--font-sm-plus);
   line-height: 1.75;
   white-space: pre;
 }

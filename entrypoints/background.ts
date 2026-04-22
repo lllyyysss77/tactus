@@ -1,7 +1,88 @@
-async function openSidePanel(tabId?: number): Promise<void> {
+import {
+  getAssistantDisplayMode,
+  getAssistantWindowBounds,
+  watchAssistantDisplayMode,
+  type AssistantDisplayMode,
+} from '../utils/storage';
+
+interface SurfaceContext {
+  tabId?: number | null;
+  windowId?: number | null;
+}
+
+const ASSISTANT_WINDOW_ID_STORAGE_KEY = 'assistantWindowId';
+
+async function getStoredAssistantWindowId(): Promise<number | null> {
+  const result = await browser.storage.local.get(ASSISTANT_WINDOW_ID_STORAGE_KEY);
+  const windowId = result[ASSISTANT_WINDOW_ID_STORAGE_KEY];
+  return typeof windowId === 'number' ? windowId : null;
+}
+
+async function setStoredAssistantWindowId(windowId: number | null): Promise<void> {
+  if (typeof windowId === 'number') {
+    await browser.storage.local.set({ [ASSISTANT_WINDOW_ID_STORAGE_KEY]: windowId });
+    return;
+  }
+  await browser.storage.local.remove(ASSISTANT_WINDOW_ID_STORAGE_KEY);
+}
+
+async function resolveActiveTabForWindow(windowId: number): Promise<any | null> {
+  const [tab] = await browser.tabs.query({ active: true, windowId });
+  return tab ?? null;
+}
+
+async function resolveSurfaceContext(messageContext?: SurfaceContext, sender?: any): Promise<{
+  tabId: number | null;
+  windowId: number | null;
+}> {
+  let tabId = typeof messageContext?.tabId === 'number' ? messageContext.tabId : sender?.tab?.id ?? null;
+  let windowId = typeof messageContext?.windowId === 'number' ? messageContext.windowId : sender?.tab?.windowId ?? null;
+
+  if (tabId === null && windowId !== null) {
+    const tab = await resolveActiveTabForWindow(windowId);
+    tabId = tab?.id ?? null;
+  }
+
+  if (tabId === null || windowId === null) {
+    const [fallbackTab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tabId === null) {
+      tabId = fallbackTab?.id ?? null;
+    }
+    if (windowId === null) {
+      windowId = typeof fallbackTab?.windowId === 'number' ? fallbackTab.windowId : null;
+    }
+  }
+
+  if (windowId === null) {
+    try {
+      const focusedWindow = await browser.windows.getLastFocused();
+      windowId = focusedWindow?.id ?? null;
+    } catch {
+      windowId = null;
+    }
+  }
+
+  return { tabId, windowId };
+}
+
+async function openSidePanel(tabId?: number | null, windowId?: number | null): Promise<void> {
+  let resolvedTabId = typeof tabId === 'number' ? tabId : null;
+  let resolvedWindowId = typeof windowId === 'number' ? windowId : null;
+
+  if (resolvedTabId === null && typeof windowId === 'number') {
+    const tab = await resolveActiveTabForWindow(windowId);
+    resolvedTabId = tab?.id ?? null;
+  }
+
+  if (resolvedTabId === null) {
+    const [tab] = await browser.tabs.query({ active: true, lastFocusedWindow: true });
+    resolvedTabId = tab?.id ?? null;
+    resolvedWindowId = typeof tab?.windowId === 'number' ? tab.windowId : resolvedWindowId;
+  }
+
   const sidePanelApi = (browser as any).sidePanel;
-  if (sidePanelApi?.open && tabId) {
-    await sidePanelApi.open({ tabId });
+  if (sidePanelApi?.open && (resolvedWindowId || resolvedTabId)) {
+    await sidePanelApi.open(resolvedWindowId ? { windowId: resolvedWindowId } : { tabId: resolvedTabId });
     return;
   }
 
@@ -12,6 +93,135 @@ async function openSidePanel(tabId?: number): Promise<void> {
   }
 
   throw new Error('当前浏览器不支持侧边栏 API');
+}
+
+async function closeSidePanel(sidePanelPort: any): Promise<void> {
+  const sidebarActionApi = (browser as any).sidebarAction;
+  if (sidePanelPort && sidebarActionApi?.close) {
+    await sidebarActionApi.close();
+    return;
+  }
+
+  if (sidePanelPort) {
+    sidePanelPort.postMessage({ type: 'CLOSE' });
+    return;
+  }
+
+  const sidebarToggleApi = (browser as any).sidebarAction;
+  if (sidebarToggleApi?.toggle) {
+    await sidebarToggleApi.toggle();
+  }
+}
+
+function buildAssistantWindowUrl(context: { tabId: number | null; windowId: number | null }): string {
+  const params = new URLSearchParams();
+  if (context.tabId !== null) {
+    params.set('hostTabId', String(context.tabId));
+  }
+  if (context.windowId !== null) {
+    params.set('hostWindowId', String(context.windowId));
+  }
+
+  const suffix = params.toString();
+  return browser.runtime.getURL(`/assistant-window.html${suffix ? `?${suffix}` : ''}` as any);
+}
+
+async function focusAssistantWindow(context?: { tabId: number | null; windowId: number | null }): Promise<boolean> {
+  const existingWindowId = await getStoredAssistantWindowId();
+  if (existingWindowId === null) return false;
+
+  try {
+    await browser.windows.update(existingWindowId, { focused: true });
+    if (context) {
+      await browser.runtime.sendMessage({
+        type: 'ASSISTANT_HOST_CONTEXT_UPDATED',
+        context,
+      });
+    }
+    return true;
+  } catch {
+    await setStoredAssistantWindowId(null);
+    return false;
+  }
+}
+
+async function openAssistantWindow(context: { tabId: number | null; windowId: number | null }): Promise<void> {
+  const wasFocused = await focusAssistantWindow(context);
+  if (wasFocused) return;
+
+  const bounds = await getAssistantWindowBounds();
+  const createdWindow = await browser.windows.create({
+    url: buildAssistantWindowUrl(context),
+    type: 'popup',
+    width: bounds.width,
+    height: bounds.height,
+    focused: true,
+  });
+
+  await setStoredAssistantWindowId(createdWindow?.id ?? null);
+}
+
+async function closeAssistantWindow(windowId?: number | null): Promise<void> {
+  const targetWindowId = typeof windowId === 'number' ? windowId : await getStoredAssistantWindowId();
+  if (targetWindowId === null) return;
+
+  try {
+    await browser.windows.remove(targetWindowId);
+  } catch {
+    // 窗口可能已经被用户关闭
+  } finally {
+    await setStoredAssistantWindowId(null);
+  }
+}
+
+async function openAssistantSurface(mode: AssistantDisplayMode, context: { tabId: number | null; windowId: number | null }): Promise<void> {
+  if (mode === 'window') {
+    await openAssistantWindow(context);
+    return;
+  }
+
+  await openSidePanel(context.tabId, context.windowId);
+}
+
+async function toggleAssistantSurface(
+  mode: AssistantDisplayMode,
+  context: { tabId: number | null; windowId: number | null },
+  sidePanelPort: any,
+): Promise<void> {
+  if (mode === 'window') {
+    const existingWindowId = await getStoredAssistantWindowId();
+    if (existingWindowId !== null) {
+      await closeAssistantWindow(existingWindowId);
+      return;
+    }
+
+    await openAssistantWindow(context);
+    return;
+  }
+
+  const sidePanelApi = (browser as any).sidePanel;
+  if (sidePanelApi?.open) {
+    if (sidePanelPort) {
+      await closeSidePanel(sidePanelPort);
+      return;
+    }
+
+    await openSidePanel(context.tabId, context.windowId);
+    return;
+  }
+
+  const sidebarActionApi = (browser as any).sidebarAction;
+  if (sidebarActionApi?.toggle) {
+    await sidebarActionApi.toggle();
+    return;
+  }
+
+  if (sidePanelPort) {
+    await closeSidePanel(sidePanelPort);
+    return;
+  }
+
+  await openSidePanel(context.tabId, context.windowId);
 }
 
 async function executeMainWorldScript(tabId: number, code: string): Promise<void> {
@@ -90,7 +300,7 @@ async function readMainWorldResult(tabId: number, key: string): Promise<any> {
 // 执行脚本的核心逻辑
 async function executeScriptInTab(tabId: number, code: string, args: Record<string, any>, scriptId: string): Promise<any> {
   const resultKey = `__skill_result_${scriptId}_${Date.now()}__`;
-  
+
   const wrappedCode = `
 (async () => {
   try {
@@ -100,9 +310,9 @@ async function executeScriptInTab(tabId: number, code: string, args: Record<stri
     })();
     window['${resultKey}'] = { success: true, data: __result__ };
   } catch (error) {
-    window['${resultKey}'] = { 
-      success: false, 
-      error: error instanceof Error ? error.message : String(error) 
+    window['${resultKey}'] = {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 })();
@@ -115,39 +325,57 @@ async function executeScriptInTab(tabId: number, code: string, args: Record<stri
   const maxWait = 60000;
   const interval = 1000;
   let waited = 0;
-  
+
   while (waited < maxWait) {
     await new Promise(resolve => setTimeout(resolve, interval));
     waited += interval;
 
-    // 检查是否获取到有效结果（必须是包含 success 属性的对象）
     const execResult = await readMainWorldResult(tabId, resultKey);
     if (execResult && typeof execResult === 'object' && 'success' in execResult) {
       if (execResult.success) {
         return execResult.data;
-      } else {
-        throw new Error(execResult.error);
       }
+      throw new Error(execResult.error);
     }
   }
-  
+
   throw new Error('脚本执行超时');
 }
 
 export default defineBackground(() => {
-  // 监听扩展安装事件
+  let currentDisplayMode: AssistantDisplayMode = 'sidepanel';
+
+  const updatePanelBehavior = async (mode: AssistantDisplayMode) => {
+    currentDisplayMode = mode;
+    const sidePanelApi = (browser as any).sidePanel;
+    if (sidePanelApi?.setPanelBehavior) {
+      await sidePanelApi.setPanelBehavior({
+        openPanelOnActionClick: mode === 'sidepanel',
+      });
+    }
+  };
+
+  void getAssistantDisplayMode()
+    .then(updatePanelBehavior)
+    .catch((error) => {
+      console.error('Failed to initialize assistant display mode:', error);
+    });
+
+  watchAssistantDisplayMode((mode) => {
+    void updatePanelBehavior(mode).catch((error) => {
+      console.error('Failed to update side panel behavior:', error);
+    });
+  });
+
   browser.runtime.onInstalled.addListener(async ({ reason }) => {
     if (reason === 'install') {
-      // 首次安装时，检测并设置语言
       const { initializeLanguage } = await import('../utils/storage');
       await initializeLanguage();
     }
   });
 
-  // 跟踪 sidepanel 连接状态
   let sidePanelPort: any = null;
 
-  // 监听 sidepanel 连接
   browser.runtime.onConnect.addListener((port) => {
     if (port.name === 'sidepanel') {
       sidePanelPort = port;
@@ -157,73 +385,88 @@ export default defineBackground(() => {
     }
   });
 
-  // Open/toggle side panel when extension icon is clicked
+  browser.windows.onRemoved.addListener((windowId) => {
+    getStoredAssistantWindowId().then((storedWindowId) => {
+      if (storedWindowId === windowId) {
+        void setStoredAssistantWindowId(null);
+      }
+    });
+  });
+
   const actionApi = (browser as any).action ?? (browser as any).browserAction;
   actionApi?.onClicked?.addListener(async (tab: any) => {
     try {
-      // Firefox: use sidebarAction.toggle() for open/close behavior
-      const sidebarActionApi = (browser as any).sidebarAction;
-      if (sidebarActionApi?.toggle) {
-        await sidebarActionApi.toggle();
+      if (currentDisplayMode === 'sidepanel' && (browser as any).sidePanel?.setPanelBehavior) {
         return;
       }
-      // Chrome: fallback to openSidePanel (though setPanelBehavior handles this)
-      await openSidePanel(tab?.id);
+      const context = await resolveSurfaceContext({
+        tabId: tab?.id ?? null,
+        windowId: tab?.windowId ?? null,
+      });
+      await toggleAssistantSurface(currentDisplayMode, context, sidePanelPort);
     } catch (error) {
-      console.error('Failed to open side panel:', error);
+      console.error('Failed to toggle assistant surface:', error);
     }
   });
 
-  // Handle messages from content script
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'OPEN_SIDEPANEL') {
-      openSidePanel(sender.tab?.id).catch((error) => {
-        console.error('Failed to open side panel:', error);
+      const directContext = {
+        tabId: typeof message.context?.tabId === 'number' ? message.context.tabId : sender?.tab?.id ?? null,
+        windowId: typeof message.context?.windowId === 'number' ? message.context.windowId : sender?.tab?.windowId ?? null,
+      };
+      void openAssistantSurface(currentDisplayMode, directContext).catch((error) => {
+        console.error('Failed to open assistant surface:', error);
       });
     }
+
     if (message.type === 'TOGGLE_SIDEPANEL') {
-      if ((browser as any).sidePanel?.open) {
-        if (sidePanelPort) {
-          // sidepanel 已打开，发送关闭消息
-          sidePanelPort.postMessage({ type: 'CLOSE' });
-        } else {
-          // sidepanel 未打开，打开它
-          openSidePanel(sender.tab?.id).catch((error) => {
-            console.error('Failed to open side panel:', error);
-          });
-        }
-      } else {
-        const sidebarActionApi = (browser as any).sidebarAction;
-        if (sidePanelPort && sidebarActionApi?.close) {
-          sidebarActionApi.close().catch((error: unknown) => {
-            console.error('Failed to close sidebar:', error);
-          });
-        } else if (sidePanelPort) {
-          sidePanelPort.postMessage({ type: 'CLOSE' });
-        } else {
-          openSidePanel(sender.tab?.id).catch((error) => {
-            console.error('Failed to open side panel:', error);
-          });
-        }
-      }
+      const directContext = {
+        tabId: typeof message.context?.tabId === 'number' ? message.context.tabId : sender?.tab?.id ?? null,
+        windowId: typeof message.context?.windowId === 'number' ? message.context.windowId : sender?.tab?.windowId ?? null,
+      };
+      void toggleAssistantSurface(currentDisplayMode, directContext, sidePanelPort).catch((error) => {
+        console.error('Failed to toggle assistant surface:', error);
+      });
     }
+
+    if (message.type === 'SWITCH_ASSISTANT_SURFACE') {
+      resolveSurfaceContext(message.context, sender)
+        .then(async (context) => {
+          if (message.targetMode === 'window') {
+            await openAssistantWindow(context);
+            await closeSidePanel(sidePanelPort);
+            return;
+          }
+
+          await openSidePanel(context.tabId, context.windowId);
+          await closeAssistantWindow(message.assistantWindowId);
+        })
+        .catch((error) => {
+          console.error('Failed to switch assistant surface:', error);
+        });
+    }
+
+    if (message.type === 'CLOSE_ASSISTANT_WINDOW') {
+      void closeAssistantWindow(message.assistantWindowId).catch((error) => {
+        console.error('Failed to close assistant window:', error);
+      });
+    }
+
     if (message.type === 'SET_QUOTE') {
-      // Store quote temporarily for sidepanel to pick up
       browser.storage.local.set({ pendingQuote: message.quote });
     }
-    
-    // 处理脚本执行请求
+
     if (message.type === 'EXECUTE_SKILL_SCRIPT') {
       const { tabId, code, args, scriptId } = message;
       executeScriptInTab(tabId, code, args, scriptId)
         .then(result => sendResponse({ success: true, result }))
         .catch(error => sendResponse({ success: false, error: error.message }));
-      return true; // 保持消息通道开放
+      return true;
     }
-    
+
     return true;
   });
 
-  // Set side panel behavior
   (browser as any).sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true });
 });

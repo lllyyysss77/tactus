@@ -15,6 +15,9 @@ import {
   setThemeMode,
   watchThemeMode,
   applyTheme,
+  getUiFontScale,
+  watchUiFontScale,
+  applyUiFontScale,
   getResolvedTheme,
   getSelectionQuoteEnabled,
   watchSelectionQuoteEnabled,
@@ -25,12 +28,16 @@ import {
   getRawExtractSites,
   isRawExtractSite,
   isVisionSupportedForModel,
+  setAssistantDisplayMode,
+  setAssistantWindowBounds,
   getPresetActions,
   watchPresetActions,
   type AIProvider,
   type Language,
   type ThemeMode,
   type PresetAction,
+  type UiFontScale,
+  type AssistantDisplayMode,
 } from '../../utils/storage';
 import {
   getSharePageContentPreferenceInitialized,
@@ -67,17 +74,112 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+interface SurfaceContext {
+  tabId: number | null;
+  windowId: number | null;
+}
+
+const props = withDefaults(defineProps<{
+  surfaceMode?: AssistantDisplayMode;
+}>(), {
+  surfaceMode: 'sidepanel',
+});
+
 // Language state
 const currentLanguage = ref<Language>('en');
 
 // Theme state
 const currentThemeMode = ref<ThemeMode>('system');
 const showThemeSelector = ref(false);
+const currentUiFontScale = ref<UiFontScale>(1);
+const currentAssistantWindowId = ref<number | null>(null);
+const hostSurfaceContext = ref<SurfaceContext>({
+  tabId: null,
+  windowId: null,
+});
 
 // 国际化辅助函数
 const i18n = (key: keyof Translations, params?: Record<string, string | number>) => {
   return t(currentLanguage.value, key, params);
 };
+
+const isWindowSurface = computed(() => props.surfaceMode === 'window');
+
+function readHostSurfaceContextFromUrl(): SurfaceContext {
+  const searchParams = new URLSearchParams(window.location.search);
+  const rawTabId = Number(searchParams.get('hostTabId'));
+  const rawWindowId = Number(searchParams.get('hostWindowId'));
+
+  return {
+    tabId: Number.isFinite(rawTabId) ? rawTabId : null,
+    windowId: Number.isFinite(rawWindowId) ? rawWindowId : null,
+  };
+}
+
+function updateHostSurfaceContext(context?: Partial<SurfaceContext> | null): void {
+  if (!context) return;
+  if (typeof context.tabId === 'number') {
+    hostSurfaceContext.value.tabId = context.tabId;
+  }
+  if (typeof context.windowId === 'number') {
+    hostSurfaceContext.value.windowId = context.windowId;
+  }
+}
+
+async function getTargetTab(): Promise<any | null> {
+  const syncWindowSurfaceContext = (tab: any) => {
+    if (!isWindowSurface.value || !tab) return;
+    updateHostSurfaceContext({
+      tabId: typeof tab.id === 'number' ? tab.id : undefined,
+      windowId: typeof tab.windowId === 'number' ? tab.windowId : undefined,
+    });
+  };
+
+  if (lockedTabId.value) {
+    try {
+      const tab = await browser.tabs.get(lockedTabId.value);
+      syncWindowSurfaceContext(tab);
+      return tab;
+    } catch {
+      // 锁定标签页已关闭，继续回退
+    }
+  }
+
+  if (isWindowSurface.value) {
+    if (hostSurfaceContext.value.windowId !== null) {
+      const [tab] = await browser.tabs.query({ active: true, windowId: hostSurfaceContext.value.windowId });
+      if (tab) {
+        syncWindowSurfaceContext(tab);
+        return tab;
+      }
+    }
+
+    if (hostSurfaceContext.value.tabId !== null) {
+      try {
+        const tab = await browser.tabs.get(hostSurfaceContext.value.tabId);
+        syncWindowSurfaceContext(tab);
+        return tab;
+      } catch {
+        // 记录的宿主标签页可能已关闭，继续回退
+      }
+    }
+  }
+
+  const [tab] = await browser.tabs.query({
+    active: true,
+    ...(isWindowSurface.value ? { lastFocusedWindow: true } : { currentWindow: true }),
+  });
+  syncWindowSurfaceContext(tab);
+  return tab ?? null;
+}
+
+async function resolveSurfaceContext(): Promise<SurfaceContext> {
+  const tab = await getTargetTab();
+  return {
+    tabId: typeof tab?.id === 'number' ? tab.id : hostSurfaceContext.value.tabId,
+    windowId: typeof tab?.windowId === 'number' ? tab.windowId : hostSurfaceContext.value.windowId,
+  };
+}
 
 function encodeMarkdownData(value: string): string {
   return encodeURIComponent(value);
@@ -310,7 +412,7 @@ const lockedTabId = ref<number | null>(null);
 async function captureLockedTab(): Promise<void> {
   if (!sharePageContent.value) return;
   try {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const tab = await getTargetTab();
     if (tab?.id) {
       lockedTabId.value = tab.id;
     }
@@ -642,8 +744,7 @@ async function regenerateResponse(): Promise<void> {
           }
         }
         if (!tab) {
-          const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-          tab = activeTab;
+          tab = await getTargetTab();
         }
         if (tab?.url && tab?.title) {
           const urlObj = new URL(tab.url);
@@ -845,7 +946,7 @@ async function refreshActiveTabInfo(): Promise<void> {
   // AI 回复期间锁定标签页信息，不随浏览器标签页切换而更新
   if (isTabLocked.value) return;
   try {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const tab = await getTargetTab();
     if (!tab?.url || !tab.title) {
       activeTabInfo.value = null;
       return;
@@ -1092,6 +1193,7 @@ const unwatchProviders = ref<(() => void) | null>(null);
 const unwatchActiveProviderId = ref<(() => void) | null>(null);
 const unwatchLanguage = ref<(() => void) | null>(null);
 const unwatchThemeMode = ref<(() => void) | null>(null);
+const unwatchUiFontScale = ref<(() => void) | null>(null);
 const unwatchSelectionQuoteEnabled = ref<(() => void) | null>(null);
 const unwatchMaxPageContentLength = ref<(() => void) | null>(null);
 const unwatchMaxToolCalls = ref<(() => void) | null>(null);
@@ -1103,11 +1205,16 @@ let sidepanelSelectionMouseupHandler: ((event: MouseEvent) => void) | null = nul
 let sidepanelSelectionMousedownHandler: ((event: MouseEvent) => void) | null = null;
 let markdownActionClickHandler: ((event: MouseEvent) => void) | null = null;
 let globalKeydownHandler: ((event: KeyboardEvent) => void) | null = null;
+let windowBoundsSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let assistantWindowBoundsListener: ((windowInfo: any) => void) | null = null;
 
 onMounted(async () => {
+  hostSurfaceContext.value = readHostSurfaceContextFromUrl();
   providers.value = await getAllProviders();
   const activeProvider = await getActiveProvider();
   activeProviderId.value = activeProvider?.id || null;
+  currentUiFontScale.value = await getUiFontScale();
+  applyUiFontScale(currentUiFontScale.value);
   selectionQuoteEnabled.value = await getSelectionQuoteEnabled();
   maxPageContentLength.value = await getMaxPageContentLength();
   maxToolCalls.value = await getMaxToolCalls();
@@ -1118,6 +1225,18 @@ onMounted(async () => {
   // 加载主题设置
   currentThemeMode.value = await getThemeMode();
   applyTheme(currentThemeMode.value);
+
+  if (isWindowSurface.value) {
+    try {
+      const currentWindow = await browser.windows.getCurrent();
+      currentAssistantWindowId.value = currentWindow?.id ?? null;
+      if (currentAssistantWindowId.value !== null) {
+        await browser.storage.local.set({ assistantWindowId: currentAssistantWindowId.value });
+      }
+    } catch (error) {
+      console.error('Failed to register assistant window:', error);
+    }
+  }
   
   // 监听系统主题变化
   systemThemeMediaQuery.value = window.matchMedia('(prefers-color-scheme: dark)');
@@ -1167,6 +1286,12 @@ onMounted(async () => {
     applyTheme(newMode);
   });
 
+  // 监听字号变化（跨页面同步）
+  unwatchUiFontScale.value = watchUiFontScale((scale) => {
+    currentUiFontScale.value = scale;
+    applyUiFontScale(scale);
+  });
+
   // 监听划词引用设置变化
   unwatchSelectionQuoteEnabled.value = watchSelectionQuoteEnabled((enabled) => {
     selectionQuoteEnabled.value = enabled;
@@ -1194,22 +1319,51 @@ onMounted(async () => {
   });
 
   // 监听 skills 变更消息
-  browser.runtime.onMessage.addListener(handleSkillsChanged);
+  browser.runtime.onMessage.addListener(handleRuntimeMessage);
 
   // 监听活动标签页变化，保持“当前标签页”卡片同步
-  tabsActivatedListener = () => {
+  tabsActivatedListener = (activeInfo: any) => {
+    if (isWindowSurface.value && activeInfo?.windowId === hostSurfaceContext.value.windowId) {
+      updateHostSurfaceContext({ tabId: activeInfo.tabId });
+    }
     refreshActiveTabInfo();
   };
   browser.tabs.onActivated.addListener(tabsActivatedListener);
 
   tabsUpdatedListener = (_tabId: number, changeInfo: any, tab: any) => {
     if (!tab.active) return;
+    if (isWindowSurface.value && tab.windowId === hostSurfaceContext.value.windowId) {
+      updateHostSurfaceContext({
+        tabId: typeof tab.id === 'number' ? tab.id : undefined,
+        windowId: typeof tab.windowId === 'number' ? tab.windowId : undefined,
+      });
+    }
     if (changeInfo.status === 'complete' || changeInfo.title || changeInfo.url) {
       refreshActiveTabInfo();
     }
   };
   browser.tabs.onUpdated.addListener(tabsUpdatedListener);
   await refreshActiveTabInfo();
+
+  if (isWindowSurface.value) {
+    assistantWindowBoundsListener = (windowInfo: any) => {
+      if (windowInfo?.id !== currentAssistantWindowId.value || !windowInfo?.width || !windowInfo?.height) {
+        return;
+      }
+      if (windowBoundsSaveTimer) {
+        clearTimeout(windowBoundsSaveTimer);
+      }
+      windowBoundsSaveTimer = setTimeout(() => {
+        setAssistantWindowBounds({
+          width: windowInfo.width,
+          height: windowInfo.height,
+        }).catch((error) => {
+          console.error('Failed to persist assistant window bounds:', error);
+        });
+      }, 120);
+    };
+    browser.windows.onBoundsChanged.addListener(assistantWindowBoundsListener);
+  }
 
   // Check for pending quote from content script
   const result = await browser.storage.local.get('pendingQuote');
@@ -1246,12 +1400,17 @@ onMounted(async () => {
   document.addEventListener('keydown', globalKeydownHandler);
 });
 
-// Skills 变更消息处理
-function handleSkillsChanged(message: any) {
+// Runtime 消息处理
+function handleRuntimeMessage(message: any) {
   if (message?.type === 'SKILLS_CHANGED') {
     getAllSkills().then(skills => {
       installedSkills.value = skills;
     });
+    return;
+  }
+
+  if (message?.type === 'ASSISTANT_HOST_CONTEXT_UPDATED' && isWindowSurface.value) {
+    updateHostSurfaceContext(message.context);
   }
 }
 
@@ -1316,6 +1475,7 @@ onUnmounted(() => {
   unwatchActiveProviderId.value?.();
   unwatchLanguage.value?.();
   unwatchThemeMode.value?.();
+  unwatchUiFontScale.value?.();
   unwatchSelectionQuoteEnabled.value?.();
   unwatchMaxPageContentLength.value?.();
   unwatchMaxToolCalls.value?.();
@@ -1323,7 +1483,7 @@ onUnmounted(() => {
   // 移除系统主题监听
   systemThemeMediaQuery.value?.removeEventListener('change', handleSystemThemeChange);
   // 移除 skills 变更监听
-  browser.runtime.onMessage.removeListener(handleSkillsChanged);
+  browser.runtime.onMessage.removeListener(handleRuntimeMessage);
   // 移除标签页监听
   if (tabsActivatedListener) {
     browser.tabs.onActivated.removeListener(tabsActivatedListener);
@@ -1347,6 +1507,12 @@ onUnmounted(() => {
   }
   if (globalKeydownHandler) {
     document.removeEventListener('keydown', globalKeydownHandler);
+  }
+  if (assistantWindowBoundsListener) {
+    browser.windows.onBoundsChanged.removeListener(assistantWindowBoundsListener);
+  }
+  if (windowBoundsSaveTimer) {
+    clearTimeout(windowBoundsSaveTimer);
   }
   // 清理调试面板刷新定时器
   if (debugRefreshTimer) {
@@ -1416,7 +1582,7 @@ async function extractCleanPageContent(): Promise<string> {
     }
 
     if (!targetTabId) {
-      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+      const tab = await getTargetTab();
       targetTab = tab;
       targetTabId = tab?.id ?? null;
     }
@@ -1765,8 +1931,7 @@ async function sendMessage() {
           }
         }
         if (!tab) {
-          const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-          tab = activeTab;
+          tab = await getTargetTab();
         }
         if (tab?.url && tab?.title) {
           const urlObj = new URL(tab.url);
@@ -1964,6 +2129,61 @@ function openSettings() {
   browser.runtime.openOptionsPage();
 }
 
+const surfaceToggleTitle = computed(() => {
+  return i18n(isWindowSurface.value ? 'switchToSidepanel' : 'switchToWindow');
+});
+
+async function switchSurfaceMode() {
+  const targetMode: AssistantDisplayMode = isWindowSurface.value ? 'sidepanel' : 'window';
+  const directSurfaceContext = {
+    tabId: hostSurfaceContext.value.tabId,
+    windowId: hostSurfaceContext.value.windowId,
+  };
+
+  if (
+    isWindowSurface.value &&
+    (browser as any).sidePanel?.open &&
+    directSurfaceContext.windowId !== null
+  ) {
+    try {
+      await (browser as any).sidePanel.open({ windowId: directSurfaceContext.windowId });
+      await setAssistantDisplayMode('sidepanel');
+      await browser.runtime.sendMessage({
+        type: 'CLOSE_ASSISTANT_WINDOW',
+        assistantWindowId: currentAssistantWindowId.value,
+      });
+      return;
+    } catch (error) {
+      console.error('Failed to switch assistant surface directly:', error);
+    }
+  }
+
+  const surfaceContext = await resolveSurfaceContext();
+
+  if (surfaceContext.windowId === null && surfaceContext.tabId === null) {
+    console.error('Failed to resolve a valid surface context for assistant switch');
+    return;
+  }
+
+  await setAssistantDisplayMode(targetMode);
+
+  const message: Record<string, any> = {
+    type: 'SWITCH_ASSISTANT_SURFACE',
+    targetMode,
+    context: surfaceContext,
+  };
+
+  if (isWindowSurface.value) {
+    message.assistantWindowId = currentAssistantWindowId.value;
+  }
+
+  try {
+    await browser.runtime.sendMessage(message);
+  } catch (error) {
+    console.error('Failed to switch assistant surface:', error);
+  }
+}
+
 // Select provider and model
 async function selectProviderModel(providerId: string, model: string) {
   // 从 storage 重新获取最新的 provider 数据，避免使用可能不完整的内存数据
@@ -2136,6 +2356,18 @@ function rejectScript() {
           </div>
           <div v-if="showThemeSelector" class="theme-backdrop" @click="showThemeSelector = false"></div>
         </div>
+        <button class="icon-btn" @click="switchSurfaceMode" :title="surfaceToggleTitle">
+          <svg v-if="!isWindowSurface" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="14" rx="2"/>
+            <path d="M8 20h8"/>
+          </svg>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 5h16"/>
+            <path d="M4 12h16"/>
+            <path d="M4 19h10"/>
+            <rect x="15" y="14" width="6" height="5" rx="1"/>
+          </svg>
+        </button>
         <button class="icon-btn" @click="viewDebugMessages" title="API Context">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>

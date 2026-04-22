@@ -27,6 +27,15 @@ export interface TrustedScript {
   trustedAt: number;
 }
 
+export type UiFontScale = number;
+
+export type AssistantDisplayMode = 'sidepanel' | 'window';
+
+export interface AssistantWindowBounds {
+  width: number;
+  height: number;
+}
+
 // ==================== Storage Items ====================
 
 const providersStorage = storage.defineItem<AIProvider[]>('local:providers', {
@@ -40,6 +49,117 @@ const activeProviderIdStorage = storage.defineItem<string | null>('local:activeP
 const trustedScriptsStorage = storage.defineItem<TrustedScript[]>('local:trustedScripts', {
   fallback: [],
 });
+
+// ==================== UI Font Settings ====================
+
+export const UI_FONT_SCALE_MIN = 0.5;
+export const UI_FONT_SCALE_MAX = 2;
+export const UI_FONT_SCALE_STEP = 0.05;
+export const UI_FONT_SCALE_DEFAULT = 1;
+
+const uiFontScaleStorage = storage.defineItem<number | string>('local:uiFontSize', {
+  fallback: UI_FONT_SCALE_DEFAULT,
+});
+
+export async function getUiFontScale(): Promise<UiFontScale> {
+  return normalizeUiFontScaleValue(await uiFontScaleStorage.getValue());
+}
+
+export async function setUiFontScale(scale: UiFontScale): Promise<void> {
+  await uiFontScaleStorage.setValue(normalizeUiFontScaleValue(scale));
+}
+
+export function watchUiFontScale(callback: (scale: UiFontScale) => void): () => void {
+  return uiFontScaleStorage.watch((newValue) => {
+    callback(normalizeUiFontScaleValue(newValue));
+  });
+}
+
+export function applyUiFontScale(scale: UiFontScale): void {
+  document.documentElement.style.setProperty('--ui-font-scale', String(normalizeUiFontScaleValue(scale)));
+}
+
+export function normalizeUiFontScaleValue(value: unknown): UiFontScale {
+  const legacyScaleMap: Record<string, number> = {
+    xs: 0.5,
+    sm: 0.75,
+    md: 1,
+    lg: 1.5,
+    xl: 2,
+  };
+
+  const numericValue: number = typeof value === 'string'
+    ? (legacyScaleMap[value] ?? Number(value))
+    : typeof value === 'number'
+      ? value
+      : NaN;
+
+  if (!Number.isFinite(numericValue)) {
+    return UI_FONT_SCALE_DEFAULT;
+  }
+
+  const clampedValue = Math.min(UI_FONT_SCALE_MAX, Math.max(UI_FONT_SCALE_MIN, numericValue));
+  const steppedValue = Math.round(clampedValue / UI_FONT_SCALE_STEP) * UI_FONT_SCALE_STEP;
+  return Number(steppedValue.toFixed(2));
+}
+
+// ==================== Assistant Surface Settings ====================
+
+const assistantDisplayModeStorage = storage.defineItem<AssistantDisplayMode>('local:assistantDisplayMode', {
+  fallback: 'sidepanel',
+});
+
+const assistantWindowBoundsStorage = storage.defineItem<AssistantWindowBounds>('local:assistantWindowBounds', {
+  fallback: {
+    width: 540,
+    height: 760,
+  },
+});
+
+export async function getAssistantDisplayMode(): Promise<AssistantDisplayMode> {
+  return await assistantDisplayModeStorage.getValue();
+}
+
+export async function setAssistantDisplayMode(mode: AssistantDisplayMode): Promise<void> {
+  await assistantDisplayModeStorage.setValue(normalizeAssistantDisplayMode(mode));
+}
+
+export function watchAssistantDisplayMode(callback: (mode: AssistantDisplayMode) => void): () => void {
+  return assistantDisplayModeStorage.watch((newValue) => {
+    callback(normalizeAssistantDisplayMode(newValue));
+  });
+}
+
+export async function getAssistantWindowBounds(): Promise<AssistantWindowBounds> {
+  const bounds = await assistantWindowBoundsStorage.getValue();
+  return normalizeAssistantWindowBounds(bounds);
+}
+
+export async function setAssistantWindowBounds(bounds: Partial<AssistantWindowBounds>): Promise<void> {
+  const currentBounds = await getAssistantWindowBounds();
+  await assistantWindowBoundsStorage.setValue(normalizeAssistantWindowBounds({
+    ...currentBounds,
+    ...bounds,
+  }));
+}
+
+export function watchAssistantWindowBounds(callback: (bounds: AssistantWindowBounds) => void): () => void {
+  return assistantWindowBoundsStorage.watch((newValue) => {
+    callback(normalizeAssistantWindowBounds(newValue));
+  });
+}
+
+function normalizeAssistantDisplayMode(mode: unknown): AssistantDisplayMode {
+  return mode === 'window' ? 'window' : 'sidepanel';
+}
+
+function normalizeAssistantWindowBounds(bounds: Partial<AssistantWindowBounds> | null | undefined): AssistantWindowBounds {
+  const rawWidth = typeof bounds?.width === 'number' ? bounds.width : NaN;
+  const rawHeight = typeof bounds?.height === 'number' ? bounds.height : NaN;
+  const width = Number.isFinite(rawWidth) ? Math.max(420, Math.floor(rawWidth)) : 540;
+  const height = Number.isFinite(rawHeight) ? Math.max(560, Math.floor(rawHeight)) : 760;
+  return { width, height };
+}
 
 // ==================== Theme Settings ====================
 

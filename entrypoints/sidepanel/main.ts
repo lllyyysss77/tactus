@@ -3,7 +3,9 @@ import App from './App.vue';
 import 'katex/dist/katex.min.css';
 import './style.css';
 
-createApp(App).mount('#app');
+createApp(App, {
+  surfaceMode: 'sidepanel',
+}).mount('#app');
 
 // 建立与 background 的连接，用于跟踪 sidepanel 状态
 const port = browser.runtime.connect({ name: 'sidepanel' });
