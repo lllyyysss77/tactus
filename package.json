@@ -2,7 +2,7 @@
   "name": "tactus",
   "description": "The first browser AI Agent extension with Agent Skills, multi-provider AI, and MCP support",
   "private": true,
-  "version": "1.3.2",
+  "version": "1.3.3",
   "type": "module",
   "scripts": {
     "dev": "wxt",
